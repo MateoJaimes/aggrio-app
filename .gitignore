@@ -22,10 +22,3 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
-
-# Flutter/Dart
-.dart_tool/
-*.iml
-.flutter-plugins-dependencies
-.flutter-plugins
-build/

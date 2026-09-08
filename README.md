@@ -1,12 +1,11 @@
-# Agro Tech + Agro Field
+# AGGRIO
 
-Plataforma AgroTech para captura de multimedia agricola (fotos, videos, audio, notas) vinculada a fincas, lotes y actividades.
+Plataforma Aggrio para captura de multimedia agricola (fotos, videos, audio, notas) vinculada a fincas, lotes y actividades.
 
 ## Arquitectura
 
 - **Backend:** Laravel 13 + Sanctum (API REST) en `100.95.77.110:8080`
 - **Panel admin:** Filament 5
-- **App movil:** Flutter con Provider
 - **Almacenamiento:** MinIO en `100.95.77.110`
 
 ## Requisitos
@@ -14,7 +13,6 @@ Plataforma AgroTech para captura de multimedia agricola (fotos, videos, audio, n
 - PHP >= 8.4
 - Composer
 - Node.js + npm
-- Flutter SDK >= 3.11
 - SQLite
 
 ## Levantar el Backend
@@ -49,20 +47,6 @@ docker compose -f docker-compose.minio.yml up -d
 Acceso al panel: `http://localhost:9001`
 
 Crear un bucket y configurar las credenciales en `.env`.
-
-## Levantar la App Flutter
-
-1. Ir al directorio del proyecto
-2. Instalar dependencias:
-   ```
-   flutter pub get
-   ```
-3. Ejecutar:
-   ```
-   flutter run
-   ```
-
-La app se conecta al servidor compartido en `http://100.95.77.110:8080/api`. Para cambiar la URL, editar `lib/config/app_config.dart`.
 
 ## Variables de Entorno
 
@@ -112,12 +96,6 @@ El panel Filament esta disponible en `/admin`. El superadmin es el usuario con `
 │   └── Services/         # Servicios
 ├── config/               # Configuracion Laravel
 ├── database/migrations/  # Migraciones
-├── lib/                  # App Flutter
-│   ├── config/           # Configuracion de la app
-│   ├── models/           # Modelos locales
-│   ├── providers/        # State management (Provider)
-│   ├── screens/          # Pantallas
-│   └── services/         # Servicios (API, DB, Sync, Media, etc.)
 ├── routes/               # Rutas API y Web
 └── docker-compose.minio.yml
 ```
