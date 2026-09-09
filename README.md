@@ -12,8 +12,8 @@ Plataforma Aggrio para captura de multimedia agricola (fotos, videos, audio, not
 
 - PHP >= 8.4
 - Composer
-- Node.js + npm
-- SQLite
+- Node.js (v24.11.0) + npm (11.6.1) + Angula.js (v21.2.23)
+- PostgreSQL (v18)
 
 ## Levantar el Backend
 
@@ -26,6 +26,7 @@ Plataforma Aggrio para captura de multimedia agricola (fotos, videos, audio, not
    ```
    composer install
    npm install
+   npm install -g @angular/cli
    ```
 4. Generar clave de aplicacion y correr migraciones:
    ```
