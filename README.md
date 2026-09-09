@@ -1,6 +1,6 @@
 # AGGRIO
 
-Plataforma Aggrio para captura de multimedia agricola (fotos, videos, audio, notas) vinculada a fincas, lotes y actividades.
+Plataforma AgroTech para captura de multimedia agricola (fotos, videos, audio, notas) vinculada a fincas, lotes y actividades.
 
 ## Arquitectura
 
@@ -27,6 +27,8 @@ Plataforma Aggrio para captura de multimedia agricola (fotos, videos, audio, not
    composer install
    npm install
    npm install -g @angular/cli
+   cd frontend
+   npm install
    ```
 4. Generar clave de aplicacion y correr migraciones:
    ```
