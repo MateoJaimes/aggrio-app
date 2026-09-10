@@ -10,8 +10,11 @@ use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use App\Mail\ProducerCredentialsMail;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class AccessRequestsTable
@@ -78,15 +81,38 @@ class AccessRequestsTable
                             'estado'  => 'pendiente',
                         ]);
 
-                        // $record->update(['status' => 'approved']);
-
                         // 3. Actualizamos el estado de la solicitud
                         $record->update(['status' => 'approved']);
 
-                        // 4. Mostramos la notificación con el resumen completo
+                        // 4. Enviar credenciales por correo al productor (con try/catch para no interrumpir el flujo si falla el servidor de correo)
+                        $emailSent = true;
+                        try {
+                            Mail::to($user->email)->send(new ProducerCredentialsMail(
+                                user: $user,
+                                password: $password,
+                                farmName: $record->landname,
+                            ));
+                        } catch (\Throwable $e) {
+                            $emailSent = false;
+                            Log::error("Error al enviar credenciales por correo al productor ({$user->email}): " . $e->getMessage(), [
+                                'user_id' => $user->id,
+                                'email' => $user->email,
+                                'exception' => $e,
+                            ]);
+                        }
+
+                        // 5. Mostramos la notificación con el resumen al Superadmin (sin exponer la contraseña)
+                        $emailStatusMsg = $emailSent
+                            ? "Las credenciales de acceso fueron enviadas a <strong>{$record->email}</strong>."
+                            : "⚠️ <em>No se pudo enviar el correo automático a {$record->email}. Revisa la configuración de correo en los logs.</em>";
+
                         Notification::make()
                             ->title('Acceso Permitido Exitosamente')
-                            ->body("El usuario <strong>{$record->firstname} {$record->lastname}</strong> fue creado. Se creó la finca <strong>{$record->landname}</strong> en estado pendiente. Contraseña para Flutter: <strong>{$password}</strong>")
+                            ->body("
+                                • <strong>Usuario:</strong> {$record->firstname} {$record->lastname}<br>
+                                • <strong>Finca:</strong> {$record->landname} (pendiente)<br><br>
+                                {$emailStatusMsg}
+                            ")
                             ->success()
                             ->persistent()
                             ->send();
