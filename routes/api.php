@@ -33,6 +33,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Flutter pide el cascarón de la finca
     Route::get('/mis-fincas', [FincaApiController::class, 'misFincas']); 
 
+    // -- Módulo Admin: Fincas (Panel Angular / HU003) --
+    Route::get('/admin/fincas', [FincaApiController::class, 'indexAdmin']);
+    Route::patch('/admin/fincas/{id}/estado', [FincaApiController::class, 'updateEstadoAdmin']);
+    Route::post('/admin/fincas', [FincaApiController::class, 'storeAdmin']);
+    Route::put('/admin/fincas/{id}', [FincaApiController::class, 'updateAdmin']);
+
     // NUEVA: El usuario solicita vincular una finca adicional
     Route::post('/fincas/solicitar', [FincaApiController::class, 'solicitar']);
     
