@@ -1,104 +1,135 @@
-# AGGRIO
+# Aggrio
 
-Plataforma AgroTech para captura de multimedia agricola (fotos, videos, audio, notas) vinculada a fincas, lotes y actividades.
+Plataforma digital de trazabilidad e inteligencia agrícola (sector cacaotero). Centraliza el registro de fincas, lotes, actividades, evidencia multimedia georreferenciada y lecturas de sensores IoT.
 
-## Arquitectura
+Este repositorio contiene el **backend** (Laravel, en la raíz del repo) y el **frontend en migración** (Angular, en `frontend/`). El panel administrativo actual está construido en **Filament** y sigue siendo la herramienta real de gestión mientras se completa la migración a Angular, módulo por módulo.
 
-- **Backend:** Laravel 13 + Sanctum (API REST) en `100.95.77.110:8080`
-- **Panel admin:** Filament 5
-- **Almacenamiento:** MinIO en `100.95.77.110`
+## Stack
 
-## Requisitos
+| Capa | Tecnología |
+| --- | --- |
+| Backend / API REST | Laravel 13 + Sanctum (auth por token Bearer) |
+| Admin panel (actual) | Filament 5 |
+| Admin panel (en migración) | Angular 21 |
+| Almacenamiento de archivos | MinIO (compatible con S3) |
+| Base de datos | MySQL |
 
-- PHP >= 8.4
-- Composer
-- Node.js (v24.11.0) + npm (11.6.1) + Angula.js (v21.2.23)
-- PostgreSQL (v18)
+## Requisitos previos
 
-## Levantar el Backend
+- PHP 8.4+ y Composer
+- Node.js 20+ y npm
+- MySQL (o el motor configurado en `.env`)
+- Angular CLI: `npm install -g @angular/cli`
 
-1. Clonar el repositorio
-2. Copiar y configurar el archivo de entorno:
-   ```
-   cp .env.example .env
-   ```
-3. Instalar dependencias:
-   ```
-   composer install
-   npm install
-   npm install -g @angular/cli
-   cd frontend
-   npm install
-   ```
-4. Generar clave de aplicacion y correr migraciones:
-   ```
-   php artisan key:generate
-   php artisan migrate
-   ```
-5. Configurar las variables de MinIO en `.env` (ver seccion Variables de Entorno)
-6. Iniciar el servidor:
-   ```
-   php artisan serve
-   ```
+## Puesta en marcha
 
-## Levantar MinIO
+Necesitas **dos servidores corriendo en paralelo**: uno para el backend y otro para Angular.
 
-```
-docker compose -f docker-compose.minio.yml up -d
+### 1. Backend (Laravel + Filament)
+
+```bash
+composer install
+cp .env.example .env   # si no existe, crear con las credenciales de BD y MinIO
+php artisan key:generate
+php artisan migrate
+php artisan serve       # http://localhost:8000
 ```
 
-Acceso al panel: `http://localhost:9001`
+El panel de Filament queda disponible en `http://localhost:8000/admin`.
 
-Crear un bucket y configurar las credenciales en `.env`.
+### 2. Frontend (Angular)
 
-## Variables de Entorno
+```bash
+cd frontend
+npm install
+ng serve                # http://localhost:4200
+```
 
-| Variable | Descripcion |
-|---|---|
-| `FILESYSTEM_DISK` | `s3` para usar MinIO |
-| `AWS_ENDPOINT` | URL de MinIO (ej: `http://100.95.77.110:9000`) |
-| `AWS_USE_PATH_STYLE_ENDPOINT` | `true` para MinIO |
-| `AWS_ACCESS_KEY_ID` | Credencial de MinIO |
-| `AWS_SECRET_ACCESS_KEY` | Credencial de MinIO |
-| `AWS_BUCKET` | Nombre del bucket |
+Angular usa `proxy.conf.json` para reenviar todo lo que empiece en `/api` hacia `http://localhost:8000`, así en desarrollo nunca hay problemas de CORS ni hay que tocar `config/cors.php` en el backend.
 
-## Endpoints API
+Con ambos corriendo: abre `http://localhost:4200`, el login pega contra la API real de Laravel.
 
-### Publicos
-- `POST /login` - Autenticacion (devuelve token Bearer)
-- `POST /iot/lecturas` - Datos de sensores IoT
+## Cómo se conectan Angular y Laravel
 
-### Protegidos (auth:sanctum)
-- `GET /me` - Datos del usuario
-- `POST /logout` - Revocar token
-- `POST /logout-all` - Revocar todos los tokens
-- `GET /mis-fincas` - Fincas aprobadas del usuario
-- `POST /fincas/solicitar` - Solicitar nueva finca
-- `PUT /fincas/{id}/completar` - Completar datos de finca
-- `POST /fincas/{id}/multimedia` - Subir multimedia (archivo directo)
-- `GET /fincas/{id}/lotes` - Lotes de una finca
-- `POST /fincas/{id}/lotes` - Crear lote
-- `GET /lotes/{id}/actividades` - Historial de actividades
-- `POST /lotes/{id}/actividades` - Registrar actividad
-- `GET /lotes/{id}/lecturas` - Lecturas IoT de un lote
-- `POST /minio/presigned-url` - Obtener URL temporal para subida
-- `POST /multimedia/subir` - Registrar multimedia post-subida
+**Angular nunca toca la base de datos ni Filament directamente.** Solo consume la API REST bajo `/api/*` — la misma que ya usa la app de Flutter.
 
-## Acceso al Panel Admin
+**La autenticación es por token, no por cookie de sesión.** No usamos el flujo "SPA" de Sanctum (`/sanctum/csrf-cookie`, `withCredentials`). El flujo real es:
 
-El panel Filament esta disponible en `/admin`. El superadmin es el usuario con `id = 1`.
+1. Angular hace `POST /api/login` con email/contraseña.
+2. Laravel responde con un token Sanctum.
+3. Angular guarda el token y lo manda en cada request como `Authorization: Bearer <token>` (vía `core/auth/auth.interceptor.ts`).
 
-## Estructura del Proyecto
+Si alguien del equipo sigue un tutorial de "Angular + Sanctum SPA auth", no le va a funcionar con este backend — es a propósito, para no duplicar lógica con el cliente Flutter, que ya usa este mismo esquema.
+
+**Subida de multimedia** es el único flujo de tres pasos:
+
+1. Angular pide una URL prefirmada: `POST /api/minio/presigned-url`.
+2. Angular sube el archivo **directo a MinIO** con esa URL (Laravel nunca recibe los bytes).
+3. Angular registra la metadata en Laravel: `POST /api/multimedia/subir`.
+
+## Endpoints de la API (referencia rápida)
+
+| Recurso | Rutas |
+| --- | --- |
+| Auth | `POST /api/login` · `GET /api/me` · `POST /api/logout` · `POST /api/logout-all` |
+| Fincas (estates) | `GET /api/mis-fincas` · `POST /api/fincas/solicitar` · `PUT /api/fincas/{id}/completar` |
+| Lotes (lots) | `GET /api/fincas/{finca_id}/lotes` · `POST /api/fincas/{finca_id}/lotes` · `PATCH /api/lotes/{lote_id}/estado` |
+| Actividades (activities) | `GET /api/lotes/{lote_id}/actividades` · `POST /api/lotes/{lote_id}/actividades` |
+| Multimedia | `POST /api/minio/presigned-url` · `POST /api/multimedia/subir` · `POST /api/fincas/{id}/multimedia` |
+| IoT | `POST /api/iot/lecturas` (pública, sin token) · `GET /api/lotes/{lote_id}/lecturas` |
+
+Cualquier dato que necesites desde Angular y no esté en esta lista **no existe todavía en la API** — hay que crearlo en el backend antes de consumirlo, no inventarlo del lado del cliente.
+
+## Estructura del frontend
+
+#Extendido en el frontend/README.md
 
 ```
-├── app/
-│   ├── Console/          # Comandos artisan
-│   ├── Filament/         # Panel admin (Resources, Widgets)
-│   ├── Http/Controllers/ # Controladores API y Web
-│   ├── Models/           # Modelos Eloquent
-│   └── Services/         # Servicios
-├── config/               # Configuracion Laravel
-├── database/migrations/  # Migraciones
-├── routes/               # Rutas API y Web
-└── docker-compose.minio.yml
+frontend/src/app/
+├── core/        # auth, interceptors, guards, modelos y enums transversales
+├── shared/      # shell (layout), componentes reutilizables, pipes — sin lógica de negocio
+└── features/    # un módulo por recurso de la API
+    ├── auth/
+    ├── estates/       (fincas)
+    ├── lots/           (lotes)
+    ├── activities/    (actividades)
+    ├── multimedia/
+    └── iot/
 ```
+
+Convenciones:
+
+- Componentes **standalone**, sin `NgModule`. Sin el infijo `.component.`: `estate-list.ts`, no `estate-list.component.ts`.
+- Cada feature trae su propio `*.routes.ts` (lazy-loaded) y no importa directamente de otra feature — si dos módulos necesitan compartir algo, ese algo va en `shared/` o `core/`.
+- `multimedia` tiene dos servicios porque la subida es un proceso de dos llamadas (`presigned-url.service.ts` + `multimedia.service.ts`), no uno solo.
+
+## Orden de migración (Filament → Angular)
+
+No se migra todo de una vez. Filament sigue siendo el panel real hasta que cada módulo esté probado en Angular:
+
+1. **Estates + Lots** — ya tienen API completa, es el core del dominio.
+2. **Activities**
+3. **Multimedia** — más compleja por el flujo de presigned URL.
+4. **IoT** — al final.
+
+## Comandos útiles
+
+```bash
+ng serve                    # levantar Angular en desarrollo
+ng build                    # build de producción, sale en frontend/dist/
+ng generate component features/estates/pages/estate-list   # scaffolding respetando la convención de naming
+ng test                     # tests unitarios (Vitest)
+php artisan serve            # levantar el backend
+php artisan migrate:fresh --seed   # resetear BD local con datos de prueba
+```
+
+## Variables de entorno
+
+**Angular** (`frontend/src/environments/`): `apiUrl` apunta a `http://localhost:8000/api` en desarrollo. No hardcodear URLs en los servicios.
+
+**Laravel** (`.env`): credenciales de BD y de MinIO. `config/cors.php` tiene `allowed_origins => ['*']` para desarrollo local — **hay que restringirlo al dominio real antes de pasar a producción**.
+
+## Dudas frecuentes
+
+- **¿Por qué no veo mis cambios en Filament reflejados en Angular?** Angular no lee de Eloquent ni de los `Resources` de Filament, solo de `routes/api.php`. Si algo existe en Filament pero no está expuesto como endpoint de API, Angular no puede verlo.
+- **¿Dónde reporto que falta un endpoint?** Ábrelo como issue en el repo backend antes de improvisar la lógica en el frontend.
