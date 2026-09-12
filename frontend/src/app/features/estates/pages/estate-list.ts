@@ -25,6 +25,10 @@ import { FincaAdminService } from '../services/finca-admin.service';
             <span>🏡</span>
             Fincas
           </a>
+          <a class="nav-item" [routerLink]="['/access-requests']">
+            <span>📥</span>
+            Solicitudes de acceso
+          </a>
           <a class="nav-item" [routerLink]="['/estates/new']">
             <span>➕</span>
             Nueva finca

@@ -1,0 +1,94 @@
+<section class="page-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">A</span>
+      <div><small>Panel</small><strong>Aggrio</strong></div>
+    </div>
+
+    <nav class="nav" aria-label="Administración">
+      <a class="nav-item" [routerLink]="['/estates']"><span>🏡</span>Fincas</a>
+      <a class="nav-item active" [routerLink]="['/access-requests']"><span>📥</span>Solicitudes de acceso</a>
+    </nav>
+
+    <div class="sidebar-card">
+      <p>Resumen</p>
+      <div class="mini-stat"><span>Total</span><strong>{{ count() }}</strong></div>
+      <div class="mini-stat"><span>Pendientes</span><strong>{{ count('pending') }}</strong></div>
+      <div class="mini-stat"><span>En espera</span><strong>{{ count('waitlisted') }}</strong></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Administración</p>
+        <h1>Solicitudes de acceso</h1>
+        <p class="subtitle">Revisa las solicitudes de productores y decide su acceso a Aggrio.</p>
+      </div>
+      <button type="button" class="button secondary" (click)="loadRequests()" [disabled]="isLoading()">Actualizar</button>
+    </header>
+
+    <div class="stats-grid" aria-label="Resumen de solicitudes">
+      <button type="button" class="stat-card" [class.selected]="filter() === 'all'" (click)="setFilter('all')"><span>Total</span><strong>{{ count() }}</strong></button>
+      <button type="button" class="stat-card pending" [class.selected]="filter() === 'pending'" (click)="setFilter('pending')"><span>Pendientes</span><strong>{{ count('pending') }}</strong></button>
+      <button type="button" class="stat-card waiting" [class.selected]="filter() === 'waitlisted'" (click)="setFilter('waitlisted')"><span>En espera</span><strong>{{ count('waitlisted') }}</strong></button>
+      <button type="button" class="stat-card approved" [class.selected]="filter() === 'approved'" (click)="setFilter('approved')"><span>Aprobadas</span><strong>{{ count('approved') }}</strong></button>
+    </div>
+
+    @if (error()) { <div class="alert error" role="alert">{{ error() }}</div> }
+    @if (notice()) { <div class="alert success" role="status">{{ notice() }}</div> }
+
+    <section class="table-panel">
+      <div class="table-header">
+        <div><h2>Listado de solicitudes</h2><p>{{ visibleRequests().length }} resultado(s)</p></div>
+        <label class="search"><span class="sr-only">Buscar solicitudes</span><input type="search" placeholder="Buscar por nombre, correo o finca" [value]="search()" (input)="setSearch($event)" /></label>
+      </div>
+
+      @if (isLoading()) {
+        <div class="state">Cargando solicitudes...</div>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Solicitante</th><th>Finca</th><th>Correo</th><th>Estado</th><th>Fecha</th><th><span class="sr-only">Acciones</span></th></tr></thead>
+            <tbody>
+              @for (request of visibleRequests(); track request.id) {
+                <tr>
+                  <td><strong>{{ request.firstname }} {{ request.lastname }}</strong><small>{{ request.id_type }} · {{ request.id_number }}</small></td>
+                  <td>{{ request.landname }}<small>{{ request.city }}, {{ request.department }}</small></td>
+                  <td>{{ request.email }}</td>
+                  <td><span class="badge" [class]="request.status">{{ statusLabel(request.status) }}</span></td>
+                  <td>{{ request.created_at | date:'dd/MM/yyyy, HH:mm' }}</td>
+                  <td class="actions">
+                    <button type="button" class="link" (click)="openDetails(request)">Ver</button>
+                    @if (request.status !== 'approved') { <button type="button" class="approve" [disabled]="processingId() === request.id" (click)="applyAction(request, 'approve')">Permitir</button> }
+                    @if (request.status !== 'waitlisted') { <button type="button" class="wait" [disabled]="processingId() === request.id" (click)="applyAction(request, 'waitlist')">Espera</button> }
+                    @if (request.status !== 'denied') { <button type="button" class="deny" [disabled]="processingId() === request.id" (click)="applyAction(request, 'deny')">Negar</button> }
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="6" class="state">No hay solicitudes que coincidan con la búsqueda.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </main>
+</section>
+
+@if (selectedRequest(); as request) {
+  <div class="modal-backdrop" (click)="closeDetails()">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="request-detail-title" (click)="$event.stopPropagation()">
+      <header><div><p class="eyebrow">Solicitud #{{ request.id }}</p><h2 id="request-detail-title">{{ request.firstname }} {{ request.lastname }}</h2></div><button type="button" class="close" aria-label="Cerrar detalle" (click)="closeDetails()">×</button></header>
+      <span class="badge" [class]="request.status">{{ statusLabel(request.status) }}</span>
+      <div class="detail-grid">
+        <div><span>Documento</span><strong>{{ request.id_type }} · {{ request.id_number }}</strong></div>
+        <div><span>Correo</span><strong>{{ request.email }}</strong></div>
+        <div><span>Finca</span><strong>{{ request.landname }}</strong></div>
+        <div><span>Ubicación</span><strong>{{ request.city }}, {{ request.department }}, {{ request.country }}</strong></div>
+        <div><span>Solicitada el</span><strong>{{ request.created_at | date:'dd/MM/yyyy, HH:mm' }}</strong></div>
+      </div>
+      <footer><button type="button" class="button secondary" (click)="closeDetails()">Cerrar</button></footer>
+    </section>
+  </div>
+}

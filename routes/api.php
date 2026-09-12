@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ActividadApiController;
 use App\Http\Controllers\Api\MultimediaApiController;
 use App\Http\Controllers\Api\LecturaIotApiController;
 use App\Http\Controllers\Api\PresignedUrlController;
+use App\Http\Controllers\Api\AccessRequestApiController;
 
 // RUTA PÚBLICA (No requiere Token)
 // Aquí es donde Flutter envía el correo y la contraseña para obtener acceso.
@@ -38,6 +39,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/admin/fincas/{id}/estado', [FincaApiController::class, 'updateEstadoAdmin']);
     Route::post('/admin/fincas', [FincaApiController::class, 'storeAdmin']);
     Route::put('/admin/fincas/{id}', [FincaApiController::class, 'updateAdmin']);
+
+    // -- Módulo Admin: Solicitudes de acceso --
+    Route::get('/admin/access-requests', [AccessRequestApiController::class, 'index']);
+    Route::patch('/admin/access-requests/{accessRequest}/status', [AccessRequestApiController::class, 'updateStatus']);
 
     // NUEVA: El usuario solicita vincular una finca adicional
     Route::post('/fincas/solicitar', [FincaApiController::class, 'solicitar']);
