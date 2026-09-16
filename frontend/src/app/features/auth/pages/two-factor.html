@@ -1,0 +1,123 @@
+<div class="auth-shell">
+  <div class="auth-card" [class.wide]="step() !== 'verify'">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">A</span>
+      <span>
+        <strong>Aggrio</strong>
+        <small>Verificación en dos pasos</small>
+      </span>
+    </div>
+
+    @if (error()) {
+      <p class="alert error" role="alert">{{ error() }}</p>
+    }
+
+    <!-- Alta del TOTP: sólo la primera vez -->
+    @if (step() === 'enroll') {
+      <p class="eyebrow">Paso 1 de 2</p>
+      <h1>Configura tu segundo factor</h1>
+      <p class="subtitle">
+        Tu cuenta de Superadmin requiere verificación en dos pasos. Escanea el código
+        con Google Authenticator, Authy o 1Password.
+      </p>
+
+      @if (setup(); as data) {
+        <div class="steps">
+          <div class="qr-panel">
+            <img [src]="data.qr_code" alt="Código QR para la aplicación autenticadora" />
+            <p class="hint">¿No puedes escanearlo? Escribe esta clave en tu app:</p>
+            <code class="secret">{{ data.secret }}</code>
+          </div>
+
+          <form class="field" (ngSubmit)="submit()">
+            <label for="code">Código de 6 dígitos</label>
+            <input
+              id="code"
+              name="code"
+              class="code-input"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="6"
+              placeholder="000000"
+              [disabled]="isLoading()"
+              [ngModel]="code()"
+              (ngModelChange)="code.set($event)"
+            />
+            <button class="button" type="submit" [disabled]="isLoading() || !code()">
+              {{ isLoading() ? 'Verificando…' : 'Activar y entrar' }}
+            </button>
+          </form>
+        </div>
+      } @else if (isLoading()) {
+        <p class="alert info">Generando tu código QR…</p>
+      }
+    }
+
+    <!-- Verificación normal -->
+    @if (step() === 'verify') {
+      <p class="eyebrow">Paso 2 de 2</p>
+      <h1>Verifica tu identidad</h1>
+      <p class="subtitle">
+        {{ useRecoveryCode()
+            ? 'Escribe uno de los códigos de recuperación que guardaste.'
+            : 'Escribe el código que muestra tu aplicación autenticadora.' }}
+      </p>
+
+      <form (ngSubmit)="submit()">
+        <div class="field">
+          <label for="verify-code">{{ useRecoveryCode() ? 'Código de recuperación' : 'Código de 6 dígitos' }}</label>
+          <input
+            id="verify-code"
+            name="verify-code"
+            [class.code-input]="!useRecoveryCode()"
+            type="text"
+            [attr.inputmode]="useRecoveryCode() ? 'text' : 'numeric'"
+            autocomplete="one-time-code"
+            [attr.maxlength]="useRecoveryCode() ? 21 : 6"
+            [attr.autocapitalize]="useRecoveryCode() ? 'off' : null"
+            [attr.spellcheck]="useRecoveryCode() ? 'false' : null"
+            [placeholder]="useRecoveryCode() ? 'xxxxxxxxxx-xxxxxxxxxx' : '000000'"
+            [disabled]="isLoading()"
+            [ngModel]="code()"
+            (ngModelChange)="code.set($event)"
+          />
+        </div>
+
+        <button class="button" type="submit" [disabled]="isLoading() || !code()">
+          {{ isLoading() ? 'Verificando…' : 'Verificar' }}
+        </button>
+      </form>
+
+      <p class="foot">
+        <button class="linkish" type="button" (click)="toggleRecoveryCode()">
+          {{ useRecoveryCode() ? 'Usar el código de mi aplicación' : '¿Perdiste tu teléfono? Usa un código de recuperación' }}
+        </button>
+      </p>
+    }
+
+    <!-- Códigos de recuperación tras el alta -->
+    @if (step() === 'recovery-codes') {
+      <p class="eyebrow">Listo</p>
+      <h1>Guarda tus códigos de recuperación</h1>
+      <p class="subtitle">
+        Cada código sirve una sola vez y te permite entrar si pierdes acceso a tu
+        teléfono. <strong>No volverán a mostrarse.</strong>
+      </p>
+
+      <ul class="recovery-list">
+        @for (recoveryCode of recoveryCodes(); track recoveryCode) {
+          <li>{{ recoveryCode }}</li>
+        }
+      </ul>
+
+      <button class="button" type="button" (click)="finish()">Ya los guardé, continuar</button>
+    }
+
+    @if (step() !== 'recovery-codes') {
+      <p class="foot">
+        <button class="linkish" type="button" (click)="backToLogin()">Volver al inicio de sesión</button>
+      </p>
+    }
+  </div>
+</div>

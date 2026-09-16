@@ -1,0 +1,64 @@
+<div class="auth-shell">
+  <form class="auth-card" (ngSubmit)="submit()">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">A</span>
+      <span>
+        <strong>Aggrio</strong>
+        <small>Panel de administración</small>
+      </span>
+    </div>
+
+    <p class="eyebrow">Acceso</p>
+    <h1>Inicia sesión</h1>
+    <p class="subtitle">Ingresa tus credenciales para entrar al panel.</p>
+
+    @if (notice()) {
+      <p class="alert info">{{ notice() }}</p>
+    }
+
+    @if (error()) {
+      <p class="alert error" role="alert">{{ error() }}</p>
+    }
+
+    <div class="field">
+      <label for="email">Correo electrónico</label>
+      <input
+        id="email"
+        name="email"
+        type="email"
+        autocomplete="username"
+        required
+        [disabled]="isLoading()"
+        [ngModel]="email()"
+        (ngModelChange)="email.set($event)"
+      />
+    </div>
+
+    <div class="field">
+      <label for="password">Contraseña</label>
+      <div class="password-wrap">
+        <input
+          id="password"
+          name="password"
+          [type]="showPassword() ? 'text' : 'password'"
+          autocomplete="current-password"
+          required
+          [disabled]="isLoading()"
+          [ngModel]="password()"
+          (ngModelChange)="password.set($event)"
+        />
+        <button class="peek" type="button" (click)="togglePassword()">
+          {{ showPassword() ? 'Ocultar' : 'Ver' }}
+        </button>
+      </div>
+    </div>
+
+    <button class="button" type="submit" [disabled]="isLoading() || !email() || !password()">
+      {{ isLoading() ? 'Verificando…' : 'Entrar' }}
+    </button>
+
+    <p class="foot">
+      <a class="linkish" routerLink="/auth/forgot-password">¿Olvidaste tu contraseña?</a>
+    </p>
+  </form>
+</div>

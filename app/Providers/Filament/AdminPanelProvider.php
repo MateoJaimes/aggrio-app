@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Services\TwoFactorService;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -31,6 +33,23 @@ class AdminPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->login()
             ->profile()
+            // RF003. El panel reutiliza el MISMO secreto TOTP y los mismos
+            // codigos de recuperacion que la API de Angular (ver el puente en
+            // App\Models\User), de modo que el Superadmin registra su
+            // autenticador una sola vez y /sistema deja de ser una puerta sin
+            // segundo factor mientras termina la migracion a Angular.
+            ->multiFactorAuthentication(
+                AppAuthentication::make()
+                    ->recoverable()
+                    ->brandName(config('app.name'))
+                    ->recoveryCodeCount(TwoFactorService::RECOVERY_CODE_COUNT)
+                    ->codeWindow((int) config('sanctum.two_factor_window', 1)),
+                // Filament evalua esta bandera UNA sola vez, al registrar el panel,
+                // cuando todavia no hay peticion ni usuario: no admite un closure
+                // por rol. Se exige a todo el que entre a /sistema, que hoy es el
+                // personal administrativo; es mas estricto que el RF003, nunca menos.
+                isRequired: true,
+            )
             ->font('Inter') // Tipografía principal de tu PDF
             ->colors([
                 'primary' => Color::hex('#1B4D3E'), // Verde oscuro corporativo

@@ -4,11 +4,12 @@ import { RouterLink } from '@angular/router';
 
 import { Finca } from '../models/finca.model';
 import { FincaAdminService } from '../services/finca-admin.service';
+import { SessionMenu } from '../../../core/auth/session-menu';
 
 @Component({
   selector: 'app-estate-list',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, SessionMenu],
   template: `
     <section class="page-shell">
       <aside class="sidebar">
@@ -54,6 +55,8 @@ import { FincaAdminService } from '../services/finca-admin.service';
             <strong>{{ rechazadas() }}</strong>
           </div>
         </div>
+
+        <app-session-menu />
       </aside>
 
       <main class="content">

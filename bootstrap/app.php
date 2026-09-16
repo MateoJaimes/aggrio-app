@@ -15,6 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
+
+        // Necesarios para separar el access token del refresh token (RF004).
+        $middleware->alias([
+            'abilities' => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
+            'ability' => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

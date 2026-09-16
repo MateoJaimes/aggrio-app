@@ -40,9 +40,40 @@ return [
     | considered expired. This will override any values set in the token's
     | "expires_at" attribute, but first-party sessions are not affected.
     |
+    | OJO: este ajuste es global y pisa el "expires_at" de CUALQUIER token,
+    | incluido el refresh token. Por eso se deja en null y la caducidad se
+    | controla token por token desde App\Services\ApiTokenService (RF004).
+    |
     */
 
-    'expiration' => null, //El Token Expira en 24 Horas
+    'expiration' => null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Expiración de los tokens de sesión (RF004)
+    |--------------------------------------------------------------------------
+    |
+    | Minutos de vida de cada token emitido en el login. El access token es de
+    | vida corta y se renueva con el refresh token desde /api/auth/refresh.
+    |
+    */
+
+    'access_token_ttl' => (int) env('SANCTUM_ACCESS_TOKEN_TTL', 60),        // 1 hora
+    'refresh_token_ttl' => (int) env('SANCTUM_REFRESH_TOKEN_TTL', 10080),   // 7 días
+
+    /*
+    |--------------------------------------------------------------------------
+    | Doble factor (RF003)
+    |--------------------------------------------------------------------------
+    |
+    | "challenge_ttl" son los minutos que dura el reto intermedio del login en
+    | dos pasos. "window" es la tolerancia de desfase de reloj del TOTP, donde
+    | cada unidad equivale a 30 segundos hacia atrás y hacia adelante.
+    |
+    */
+
+    'two_factor_challenge_ttl' => (int) env('TWO_FACTOR_CHALLENGE_TTL', 5),
+    'two_factor_window' => (int) env('TWO_FACTOR_WINDOW', 1),
 
     /*
     |--------------------------------------------------------------------------

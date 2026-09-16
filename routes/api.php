@@ -10,22 +10,45 @@ use App\Http\Controllers\Api\MultimediaApiController;
 use App\Http\Controllers\Api\LecturaIotApiController;
 use App\Http\Controllers\Api\PresignedUrlController;
 use App\Http\Controllers\Api\AccessRequestApiController;
+use App\Http\Controllers\Api\PasswordResetController;
+use App\Http\Controllers\Api\TwoFactorController;
 
 // RUTA PÚBLICA (No requiere Token)
 // Aquí es donde Flutter envía el correo y la contraseña para obtener acceso.
 Route::post('/login', [AuthApiController::class, 'login']);
+
+// -- Doble factor del login (RF003) --
+// Públicas, pero exigen el challenge_token que sólo entrega /login tras validar
+// la contraseña. Ese token no sirve para autenticarse contra el resto de la API.
+Route::post('/login/2fa/setup', [TwoFactorController::class, 'setup']);
+Route::post('/login/2fa/confirm', [TwoFactorController::class, 'confirm']);
+Route::post('/login/2fa/verify', [TwoFactorController::class, 'verify']);
+
+// -- Recuperación de contraseña (RF005) --
+Route::post('/password/forgot', [PasswordResetController::class, 'forgot']);
+Route::post('/password/reset', [PasswordResetController::class, 'reset']);
+
+// -- Renovación de sesión (RF004) --
+// Sólo la acepta el refresh token, gracias a la ability "token:refresh".
+Route::middleware(['auth:sanctum', 'abilities:token:refresh'])
+    ->post('/auth/refresh', [AuthApiController::class, 'refresh']);
 
 // RUTA PARA EL SENSOR (POST): El hardware envía los datos aquí de forma directa
 Route::post('/iot/lecturas', [LecturaIotApiController::class, 'store']);
 
 // RUTAS PROTEGIDAS (Requieren Token Bearer)
 // Todo lo que esté dentro de este grupo exige que Flutter envíe un token válido.
-Route::middleware('auth:sanctum')->group(function () {
-    
+// "abilities:api:access" impide que un refresh token se use como token normal.
+Route::middleware(['auth:sanctum', 'abilities:api:access'])->group(function () {
+
     // -- Módulo de Usuario y Sesión --
     Route::get('/me', [AuthApiController::class, 'me']);
     Route::post('/logout', [AuthApiController::class, 'logout']);
     Route::post('/logout-all', [AuthApiController::class, 'logoutAll']);
+
+    // -- Gestión del doble factor ya autenticado (RF003) --
+    Route::get('/2fa/status', [TwoFactorController::class, 'status']);
+    Route::post('/2fa/recovery-codes', [TwoFactorController::class, 'regenerateRecoveryCodes']);
 
     // -- MinIO Presigned URL (para subida directa desde Flutter) --
     Route::post('/minio/presigned-url', [PresignedUrlController::class, 'generate']);
