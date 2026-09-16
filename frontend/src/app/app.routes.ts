@@ -14,6 +14,22 @@ export const routes: Routes = [
     loadChildren: () => import('./features/estates/estates.routes').then((m) => m.estatesRoutes),
   },
   {
+    path: 'lots',
+    loadChildren: () => import('./features/lots/lots.routes').then((m) => m.lotsRoutes),
+  },
+  {
+    path: 'activities',
+    loadChildren: () => import('./features/activities/activities.routes').then((m) => m.activitiesRoutes),
+  },
+  {
+    path: 'iot',
+    loadChildren: () => import('./features/iot/iot.routes').then((m) => m.iotRoutes),
+  },
+  {
+    path: 'multimedia',
+    loadChildren: () => import('./features/multimedia/multimedia.routes').then((m) => m.multimediaRoutes),
+  },
+  {
     path: '',
     redirectTo: 'estates',
     pathMatch: 'full',

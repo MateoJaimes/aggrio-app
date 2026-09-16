@@ -1,0 +1,107 @@
+<section class="page-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">A</span>
+      <div><small>Panel</small><strong>Aggrio</strong></div>
+    </div>
+
+    <nav class="nav">
+      <a class="nav-item" [routerLink]="['/estates']"><span>🏡</span>Fincas</a>
+      <a class="nav-item" [routerLink]="['/lots']"><span>🌱</span>Lotes</a>
+      <a class="nav-item" [routerLink]="['/activities']"><span>📋</span>Actividades</a>
+      <a class="nav-item active" [routerLink]="['/iot']"><span>📡</span>Lecturas IoT</a>
+      <a class="nav-item" [routerLink]="['/multimedia']"><span>🖼️</span>Archivos Multimedia</a>
+      <a class="nav-item" [routerLink]="['/access-requests']"><span>📥</span>Solicitudes de acceso</a>
+      <a class="nav-item" [routerLink]="['/iot/new']"><span>➕</span>Nueva lectura</a>
+    </nav>
+
+    <div class="sidebar-card">
+      <p>Resumen de telemetría</p>
+      <div class="mini-stat"><span>Total</span><strong>{{ lecturas().length }}</strong></div>
+      <div class="mini-stat"><span>Temperatura</span><strong>{{ countByTipo('temperatura') }}</strong></div>
+      <div class="mini-stat"><span>Humedad suelo</span><strong>{{ countByTipo('humedad_suelo') }}</strong></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="topbar">
+      <div>
+        <p class="eyebrow">Supervisión de operación de campo</p>
+        <h1>Gestión de lecturas IoT</h1>
+      </div>
+      <a class="button primary" [routerLink]="['/iot/new']">Nueva lectura</a>
+    </div>
+
+    @if (error()) { <div class="alert error">{{ error() }}</div> }
+    @if (notice()) { <div class="alert success">{{ notice() }}</div> }
+
+    <section class="table-panel">
+      <div class="panel-header">
+        <div>
+          <h2>Lecturas de sensores</h2>
+          <p>Consulta y administra la telemetría registrada en cualquier lote.</p>
+        </div>
+        <span class="result-count">{{ visibleLecturas().length }} resultados</span>
+      </div>
+
+      <div class="filters three-columns">
+        <label>
+          <span>Variable</span>
+          <select [value]="selectedTipo() ?? ''" (change)="filterByTipo($event)">
+            <option value="">Todas las variables</option>
+            @for (tipo of tiposMedicion; track tipo.value) { <option [value]="tipo.value">{{ tipo.label }}</option> }
+          </select>
+        </label>
+
+        <label>
+          <span>Lote</span>
+          <select [value]="selectedLoteId() ?? ''" (change)="filterByLote($event)" [disabled]="isLoadingLotes()">
+            <option value="">Todos los lotes</option>
+            @for (lote of lotes(); track lote.id) { <option [value]="lote.id">{{ loteLabel(lote) }}</option> }
+          </select>
+        </label>
+
+        <label>
+          <span>Buscar</span>
+          <input type="search" placeholder="Dispositivo, finca o propietario" (input)="setSearch($event)" />
+        </label>
+      </div>
+
+      @if (isLoading()) {
+        <div class="loading">Cargando lecturas IoT...</div>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Lote / finca</th>
+                <th>Variable</th>
+                <th>Valor</th>
+                <th>Dispositivo</th>
+                <th>Fecha y hora</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (lectura of visibleLecturas(); track lectura.id) {
+                <tr>
+                  <td><strong>{{ lectura.lote?.nombre ?? ('Lote #' + lectura.lote_id) }}</strong><small>{{ lectura.lote?.finca?.nombre ?? 'Finca no disponible' }} · {{ lectura.lote?.finca?.user?.name ?? 'Sin propietario' }}</small></td>
+                  <td><span class="measurement-type" [ngClass]="lectura.tipo_medicion">{{ tipoLabel(lectura.tipo_medicion) }}</span></td>
+                  <td class="value"><strong>{{ lectura.valor }}</strong> {{ lectura.unidad }}</td>
+                  <td>{{ lectura.mac_dispositivo || '—' }}</td>
+                  <td>{{ lectura.fecha_medicion | date:'dd/MM/yyyy, HH:mm:ss' }}</td>
+                  <td class="actions">
+                    <a [routerLink]="['/iot', lectura.id, 'edit']">Editar</a>
+                    <button class="delete" type="button" (click)="deleteLectura(lectura)" [disabled]="deletingId() === lectura.id">{{ deletingId() === lectura.id ? 'Eliminando…' : 'Eliminar' }}</button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td class="empty" colspan="6">No hay lecturas que coincidan con los filtros seleccionados.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </main>
+</section>

@@ -1,0 +1,94 @@
+<section class="page-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">A</span>
+      <div><small>Panel</small><strong>Aggrio</strong></div>
+    </div>
+
+    <nav class="nav">
+      <a class="nav-item" [routerLink]="['/estates']"><span>🏡</span>Fincas</a>
+      <a class="nav-item" [routerLink]="['/lots']"><span>🌱</span>Lotes</a>
+      <a class="nav-item" [routerLink]="['/activities']"><span>📋</span>Actividades</a>
+      <a class="nav-item active" [routerLink]="['/iot']"><span>📡</span>Lecturas IoT</a>
+      <a class="nav-item" [routerLink]="['/multimedia']"><span>🖼️</span>Archivos Multimedia</a>
+      <a class="nav-item" [routerLink]="['/access-requests']"><span>📥</span>Solicitudes de acceso</a>
+    </nav>
+
+    <div class="sidebar-card">
+      <p>Datos requeridos</p>
+      <div class="help-item">Asigna la lectura al lote donde está instalado el sensor.</div>
+      <div class="help-item">Selecciona la variable y su unidad de medida.</div>
+      <div class="help-item">Registra la fecha y hora de la medición.</div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="topbar">
+      <div>
+        <p class="eyebrow">Supervisión de operación de campo</p>
+        <h1>{{ isEdit() ? 'Editar lectura IoT' : 'Nueva lectura IoT' }}</h1>
+      </div>
+      <a class="button secondary" [routerLink]="['/iot']">Volver al listado</a>
+    </div>
+
+    @if (error()) { <div class="alert error">{{ error() }}</div> }
+
+    @if (isLoading()) {
+      <div class="loading-card">Cargando información de la lectura...</div>
+    } @else {
+      <form class="form-card" [formGroup]="form" (ngSubmit)="submit()">
+        <div class="card-heading">
+          <h2>Información de la lectura</h2>
+          <p>Los campos marcados con * son obligatorios.</p>
+        </div>
+
+        <div class="form-grid">
+          <label class="field full-width">
+            <span>Lote *</span>
+            <select formControlName="lote_id">
+              <option [ngValue]="0" disabled>Selecciona un lote</option>
+              @for (lote of lotes(); track lote.id) { <option [ngValue]="lote.id">{{ loteLabel(lote) }}</option> }
+            </select>
+            @if (form.controls.lote_id.touched && form.controls.lote_id.invalid) { <small class="field-error">Debes seleccionar un lote.</small> }
+          </label>
+
+          <label class="field">
+            <span>Variable medida *</span>
+            <select formControlName="tipo_medicion" (change)="onTipoMedicionChange($event)">
+              @for (tipo of tiposMedicion; track tipo.value) { <option [value]="tipo.value">{{ tipo.label }}</option> }
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Valor registrado *</span>
+            <input type="number" formControlName="valor" step="0.01" />
+            @if (form.controls.valor.touched && form.controls.valor.invalid) { <small class="field-error">Ingresa un valor numérico.</small> }
+          </label>
+
+          <label class="field">
+            <span>Unidad de medida *</span>
+            <select formControlName="unidad">
+              @for (unidad of unidadesActuales(); track unidad) { <option [value]="unidad">{{ unidad }}</option> }
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Fecha y hora *</span>
+            <input type="datetime-local" formControlName="fecha_medicion" />
+            @if (form.controls.fecha_medicion.touched && form.controls.fecha_medicion.invalid) { <small class="field-error">Indica cuándo fue tomada la lectura.</small> }
+          </label>
+
+          <label class="field full-width">
+            <span>MAC del dispositivo</span>
+            <input type="text" formControlName="mac_dispositivo" maxlength="50" placeholder="Ej. 24:6F:28:AA:BB:CC" />
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <a class="button secondary" [routerLink]="['/iot']">Cancelar</a>
+          <button class="primary" type="submit" [disabled]="isSaving()">{{ isSaving() ? 'Guardando…' : (isEdit() ? 'Guardar cambios' : 'Crear lectura') }}</button>
+        </div>
+      </form>
+    }
+  </main>
+</section>

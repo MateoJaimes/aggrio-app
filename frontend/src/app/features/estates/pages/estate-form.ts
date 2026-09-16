@@ -26,6 +26,22 @@ import { Finca, UserSummary } from '../models/finca.model';
             <span>🏡</span>
             Fincas
           </a>
+          <a class="nav-item" [routerLink]="['/lots']">
+            <span>🌱</span>
+            Lotes
+          </a>
+          <a class="nav-item" [routerLink]="['/activities']">
+            <span>📋</span>
+            Actividades
+          </a>
+          <a class="nav-item" [routerLink]="['/iot']">
+            <span>📡</span>
+            Lecturas IoT
+          </a>
+          <a class="nav-item" [routerLink]="['/multimedia']">
+            <span>🖼️</span>
+            Archivos Multimedia
+          </a>
           <a class="nav-item active" [routerLink]="['/estates/new']">
             <span>➕</span>
             Nueva finca

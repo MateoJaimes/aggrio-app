@@ -1,0 +1,99 @@
+<section class="page-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">A</span>
+      <div><small>Panel</small><strong>Aggrio</strong></div>
+    </div>
+
+    <nav class="nav">
+      <a class="nav-item" [routerLink]="['/estates']"><span>🏡</span>Fincas</a>
+      <a class="nav-item" [routerLink]="['/lots']"><span>🌱</span>Lotes</a>
+      <a class="nav-item active" [routerLink]="['/activities']"><span>📋</span>Actividades</a>
+      <a class="nav-item" [routerLink]="['/iot']"><span>📡</span>Lecturas IoT</a>
+      <a class="nav-item" [routerLink]="['/multimedia']"><span>🖼️</span>Archivos Multimedia</a>
+      <a class="nav-item" [routerLink]="['/access-requests']"><span>📥</span>Solicitudes de acceso</a>
+      <a class="nav-item" [routerLink]="['/activities/new']"><span>➕</span>Nueva actividad</a>
+    </nav>
+
+    <div class="sidebar-card">
+      <p>Resumen de actividades</p>
+      <div class="mini-stat"><span>Total</span><strong>{{ actividades().length }}</strong></div>
+      <div class="mini-stat"><span>Siembras</span><strong>{{ countByTipo('siembra') }}</strong></div>
+      <div class="mini-stat"><span>Cosechas</span><strong>{{ countByTipo('cosecha') }}</strong></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="topbar">
+      <div>
+        <p class="eyebrow">Supervisión de operación de campo</p>
+        <h1>Gestión de actividades</h1>
+      </div>
+      <a class="button primary" [routerLink]="['/activities/new']">Nueva actividad</a>
+    </div>
+
+    @if (error()) { <div class="alert error">{{ error() }}</div> }
+    @if (notice()) { <div class="alert success">{{ notice() }}</div> }
+
+    <section class="table-panel">
+      <div class="panel-header">
+        <div>
+          <h2>Actividades agrícolas</h2>
+          <p>Consulta y administra las labores registradas en cualquier lote.</p>
+        </div>
+        <span class="result-count">{{ visibleActividades().length }} resultados</span>
+      </div>
+
+      <div class="filters">
+        <label>
+          <span>Tipo de actividad</span>
+          <select [value]="selectedTipo() ?? ''" (change)="filterByTipo($event)">
+            <option value="">Todos los tipos</option>
+            @for (tipo of tiposActividad; track tipo.value) { <option [value]="tipo.value">{{ tipo.label }}</option> }
+          </select>
+        </label>
+
+        <label>
+          <span>Buscar</span>
+          <input type="search" placeholder="Lote, finca, propietario u observaciones" (input)="setSearch($event)" />
+        </label>
+      </div>
+
+      @if (isLoading()) {
+        <div class="loading">Cargando actividades...</div>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Lote / finca</th>
+                <th>Actividad</th>
+                <th>Fecha</th>
+                <th>Costo</th>
+                <th>Observaciones</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (actividad of visibleActividades(); track actividad.id) {
+                <tr>
+                  <td><strong>{{ actividad.lote?.nombre ?? ('Lote #' + actividad.lote_id) }}</strong><small>{{ actividad.lote?.finca?.nombre ?? 'Finca no disponible' }} · {{ actividad.lote?.finca?.user?.name ?? 'Sin propietario' }}</small></td>
+                  <td><span class="activity-type" [ngClass]="actividad.tipo_actividad">{{ tipoLabel(actividad.tipo_actividad) }}</span></td>
+                  <td>{{ actividad.fecha | date:'dd/MM/yyyy' }}</td>
+                  <td class="cost">{{ formatCosto(actividad.costo) }}</td>
+                  <td class="observation">{{ actividad.observaciones || '—' }}</td>
+                  <td class="actions">
+                    <a [routerLink]="['/activities', actividad.id, 'edit']">Editar</a>
+                    <button class="delete" type="button" (click)="deleteActividad(actividad)" [disabled]="deletingId() === actividad.id">{{ deletingId() === actividad.id ? 'Eliminando…' : 'Eliminar' }}</button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td class="empty" colspan="6">No hay actividades que coincidan con los filtros seleccionados.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </main>
+</section>

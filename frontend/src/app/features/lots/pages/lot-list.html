@@ -1,0 +1,103 @@
+<section class="page-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">A</span>
+      <div><small>Panel</small><strong>Aggrio</strong></div>
+    </div>
+
+    <nav class="nav">
+      <a class="nav-item" [routerLink]="['/estates']"><span>🏡</span>Fincas</a>
+      <a class="nav-item active" [routerLink]="['/lots']"><span>🌱</span>Lotes</a>
+      <a class="nav-item" [routerLink]="['/activities']"><span>📋</span>Actividades</a>
+      <a class="nav-item" [routerLink]="['/iot']"><span>📡</span>Lecturas IoT</a>
+      <a class="nav-item" [routerLink]="['/multimedia']"><span>🖼️</span>Archivos Multimedia</a>
+      <a class="nav-item" [routerLink]="['/access-requests']"><span>📥</span>Solicitudes de acceso</a>
+      <a class="nav-item" [routerLink]="['/lots/new']"><span>➕</span>Nuevo lote</a>
+    </nav>
+
+    <div class="sidebar-card">
+      <p>Resumen de lotes</p>
+      <div class="mini-stat"><span>Total</span><strong>{{ lotes().length }}</strong></div>
+      <div class="mini-stat"><span>Disponibles</span><strong>{{ countByEstado('disponible') }}</strong></div>
+      <div class="mini-stat"><span>En uso</span><strong>{{ countByEstado('en_uso') }}</strong></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="topbar">
+      <div>
+        <p class="eyebrow">Supervisión de operación de campo</p>
+        <h1>Gestión de lotes</h1>
+      </div>
+      <a class="button primary" [routerLink]="['/lots/new']">Nuevo lote</a>
+    </div>
+
+    @if (error()) { <div class="alert error">{{ error() }}</div> }
+    @if (notice()) { <div class="alert success">{{ notice() }}</div> }
+
+    <section class="table-panel">
+      <div class="panel-header">
+        <div>
+          <h2>Todos los lotes</h2>
+          <p>Consulta y administra los lotes de cualquier finca.</p>
+        </div>
+        <span class="result-count">{{ visibleLotes().length }} resultados</span>
+      </div>
+
+      <div class="filters">
+        <label>
+          <span>Finca</span>
+          <select [value]="selectedFincaId() ?? ''" (change)="filterByFinca($event)" [disabled]="isLoadingFincas()">
+            <option value="">Todas las fincas</option>
+            @for (finca of fincas(); track finca.id) {
+              <option [value]="finca.id">{{ fincaLabel(finca) }} · {{ finca.user?.name ?? 'Sin propietario' }}</option>
+            }
+          </select>
+        </label>
+
+        <label>
+          <span>Buscar</span>
+          <input type="search" placeholder="Lote, cultivo, finca o propietario" (input)="setSearch($event)" />
+        </label>
+      </div>
+
+      @if (isLoading()) {
+        <div class="loading">Cargando lotes...</div>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Finca / propietario</th>
+                <th>Lote</th>
+                <th>Cultivo</th>
+                <th>Hectáreas</th>
+                <th>Estado</th>
+                <th>Registro</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (lote of visibleLotes(); track lote.id) {
+                <tr>
+                  <td><strong>{{ lote.finca?.nombre ?? ('Finca #' + lote.finca_id) }}</strong><small>{{ lote.finca?.user?.name ?? 'Sin propietario' }}</small></td>
+                  <td>{{ lote.nombre }}</td>
+                  <td><span class="crop">{{ lote.tipo_cultivo }}</span>@if (lote.variedad) { <small>{{ lote.variedad }}</small> }</td>
+                  <td>{{ lote.hectareas }} ha</td>
+                  <td><span class="badge" [class.available]="lote.estado === 'disponible'" [class.in-use]="lote.estado === 'en_uso'" [class.unavailable]="lote.estado === 'no_disponible'">{{ statusLabel(lote.estado) }}</span></td>
+                  <td>{{ lote.created_at ? (lote.created_at | date:'dd/MM/yyyy') : '—' }}</td>
+                  <td class="actions">
+                    <a [routerLink]="['/lots', lote.id, 'edit']">Editar</a>
+                    <button class="delete" type="button" (click)="deleteLote(lote)" [disabled]="deletingId() === lote.id">{{ deletingId() === lote.id ? 'Eliminando…' : 'Eliminar' }}</button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td class="empty" colspan="7">No hay lotes que coincidan con los filtros seleccionados.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </main>
+</section>

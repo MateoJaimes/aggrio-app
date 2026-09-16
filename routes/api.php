@@ -63,6 +63,33 @@ Route::middleware(['auth:sanctum', 'abilities:api:access'])->group(function () {
     Route::post('/admin/fincas', [FincaApiController::class, 'storeAdmin']);
     Route::put('/admin/fincas/{id}', [FincaApiController::class, 'updateAdmin']);
 
+    // -- Módulo Superadmin: Lotes (Panel Angular / SA-HU004 RF001) --
+    Route::get('/admin/lotes', [LoteApiController::class, 'indexAdmin']);
+    Route::post('/admin/lotes', [LoteApiController::class, 'storeAdmin']);
+    Route::get('/admin/lotes/{id}', [LoteApiController::class, 'showAdmin']);
+    Route::put('/admin/lotes/{id}', [LoteApiController::class, 'updateAdmin']);
+    Route::delete('/admin/lotes/{id}', [LoteApiController::class, 'destroyAdmin']);
+
+    // -- Módulo Superadmin: Actividades agrícolas (Panel Angular / SA-HU004 RF002) --
+    Route::get('/admin/actividades', [ActividadApiController::class, 'indexAdmin']);
+    Route::post('/admin/actividades', [ActividadApiController::class, 'storeAdmin']);
+    Route::get('/admin/actividades/{id}', [ActividadApiController::class, 'showAdmin']);
+    Route::put('/admin/actividades/{id}', [ActividadApiController::class, 'updateAdmin']);
+    Route::delete('/admin/actividades/{id}', [ActividadApiController::class, 'destroyAdmin']);
+
+    // -- Módulo Superadmin: Lecturas IoT (Panel Angular / SA-HU004 RF003) --
+    Route::get('/admin/lecturas-iot', [LecturaIotApiController::class, 'indexAdmin']);
+    Route::post('/admin/lecturas-iot', [LecturaIotApiController::class, 'storeAdmin']);
+    Route::get('/admin/lecturas-iot/{id}', [LecturaIotApiController::class, 'showAdmin']);
+    Route::put('/admin/lecturas-iot/{id}', [LecturaIotApiController::class, 'updateAdmin']);
+    Route::delete('/admin/lecturas-iot/{id}', [LecturaIotApiController::class, 'destroyAdmin']);
+
+    // -- Módulo Superadmin: Evidencia multimedia (Panel Angular / SA-HU004 RF004) --
+    Route::get('/admin/archivos-multimedia', [MultimediaApiController::class, 'indexAdmin']);
+    Route::get('/admin/archivos-multimedia/{id}', [MultimediaApiController::class, 'showAdmin']);
+    Route::put('/admin/archivos-multimedia/{id}', [MultimediaApiController::class, 'updateAdmin']);
+    Route::delete('/admin/archivos-multimedia/{id}', [MultimediaApiController::class, 'destroyAdmin']);
+
     // -- Módulo Admin: Solicitudes de acceso --
     Route::get('/admin/access-requests', [AccessRequestApiController::class, 'index']);
     Route::patch('/admin/access-requests/{accessRequest}/status', [AccessRequestApiController::class, 'updateStatus']);

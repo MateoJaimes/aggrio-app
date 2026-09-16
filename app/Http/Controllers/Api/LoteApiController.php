@@ -11,6 +11,127 @@ use Illuminate\Http\JsonResponse;
 class LoteApiController extends Controller
 {
     /**
+     * Listar todos los lotes del sistema para el panel Superadmin.
+     */
+    public function indexAdmin(Request $request): JsonResponse
+    {
+        if (! $this->isSuperAdmin($request)) {
+            return $this->adminAccessDenied();
+        }
+
+        $request->validate([
+            'finca_id' => 'nullable|integer|exists:fincas,id',
+        ]);
+
+        $lotes = Lote::with(['finca.user'])
+            ->when($request->filled('finca_id'), fn ($query) => $query->where('finca_id', $request->integer('finca_id')))
+            ->orderBy('id')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lotes recuperados con éxito.',
+            'data' => $lotes,
+        ], 200);
+    }
+
+    /**
+     * Consultar un lote globalmente desde el panel Superadmin.
+     */
+    public function showAdmin(Request $request, int $id): JsonResponse
+    {
+        if (! $this->isSuperAdmin($request)) {
+            return $this->adminAccessDenied();
+        }
+
+        $lote = Lote::with(['finca.user'])->find($id);
+
+        if (! $lote) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lote no encontrado.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $lote,
+        ], 200);
+    }
+
+    /**
+     * Crear un lote en cualquier finca desde el panel Superadmin.
+     */
+    public function storeAdmin(Request $request): JsonResponse
+    {
+        if (! $this->isSuperAdmin($request)) {
+            return $this->adminAccessDenied();
+        }
+
+        $data = $this->validateAdminLote($request);
+        $lote = Lote::create($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lote creado exitosamente.',
+            'data' => $lote->load(['finca.user']),
+        ], 201);
+    }
+
+    /**
+     * Actualizar un lote desde el panel Superadmin.
+     */
+    public function updateAdmin(Request $request, int $id): JsonResponse
+    {
+        if (! $this->isSuperAdmin($request)) {
+            return $this->adminAccessDenied();
+        }
+
+        $lote = Lote::find($id);
+
+        if (! $lote) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lote no encontrado.',
+            ], 404);
+        }
+
+        $lote->update($this->validateAdminLote($request));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lote actualizado exitosamente.',
+            'data' => $lote->fresh()->load(['finca.user']),
+        ], 200);
+    }
+
+    /**
+     * Eliminar un lote desde el panel Superadmin.
+     */
+    public function destroyAdmin(Request $request, int $id): JsonResponse
+    {
+        if (! $this->isSuperAdmin($request)) {
+            return $this->adminAccessDenied();
+        }
+
+        $lote = Lote::find($id);
+
+        if (! $lote) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lote no encontrado.',
+            ], 404);
+        }
+
+        $lote->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lote eliminado exitosamente.',
+        ], 200);
+    }
+
+    /**
      * Devuelve todos los lotes pertenecientes a una finca específica
      */
     public function index(Request $request, $finca_id): JsonResponse
@@ -135,5 +256,33 @@ class LoteApiController extends Controller
             'message' => 'Estado del lote actualizado correctamente.',
             'data'    => $lote
         ], 200);
+    }
+
+    private function validateAdminLote(Request $request): array
+    {
+        return $request->validate([
+            'finca_id' => 'required|integer|exists:fincas,id',
+            'nombre' => 'required|string|max:255',
+            'hectareas' => 'required|numeric|min:0.01',
+            'tipo_cultivo' => 'required|string|max:255',
+            'variedad' => 'nullable|string|max:255',
+            'fecha_siembra' => 'nullable|date|before_or_equal:today',
+            'latitud' => 'nullable|numeric|between:-90,90',
+            'longitud' => 'nullable|numeric|between:-180,180',
+            'estado' => 'required|in:disponible,en_uso,no_disponible',
+        ]);
+    }
+
+    private function isSuperAdmin(Request $request): bool
+    {
+        return (bool) $request->user()?->isSuperAdmin();
+    }
+
+    private function adminAccessDenied(): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'No tienes permisos para acceder a esta funcionalidad.',
+        ], 403);
     }
 }

@@ -1,0 +1,87 @@
+<section class="page-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">A</span>
+      <div><small>Panel</small><strong>Aggrio</strong></div>
+    </div>
+
+    <nav class="nav">
+      <a class="nav-item" [routerLink]="['/estates']"><span>🏡</span>Fincas</a>
+      <a class="nav-item" [routerLink]="['/lots']"><span>🌱</span>Lotes</a>
+      <a class="nav-item active" [routerLink]="['/activities']"><span>📋</span>Actividades</a>
+      <a class="nav-item" [routerLink]="['/iot']"><span>📡</span>Lecturas IoT</a>
+      <a class="nav-item" [routerLink]="['/multimedia']"><span>🖼️</span>Archivos Multimedia</a>
+      <a class="nav-item" [routerLink]="['/access-requests']"><span>📥</span>Solicitudes de acceso</a>
+    </nav>
+
+    <div class="sidebar-card">
+      <p>Datos requeridos</p>
+      <div class="help-item">Selecciona el lote donde se realizó la labor.</div>
+      <div class="help-item">Clasifica la actividad para facilitar su seguimiento.</div>
+      <div class="help-item">Registra el costo total ejecutado.</div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="topbar">
+      <div>
+        <p class="eyebrow">Supervisión de operación de campo</p>
+        <h1>{{ isEdit() ? 'Editar actividad' : 'Nueva actividad' }}</h1>
+      </div>
+      <a class="button secondary" [routerLink]="['/activities']">Volver al listado</a>
+    </div>
+
+    @if (error()) { <div class="alert error">{{ error() }}</div> }
+
+    @if (isLoading()) {
+      <div class="loading-card">Cargando información de la actividad...</div>
+    } @else {
+      <form class="form-card" [formGroup]="form" (ngSubmit)="submit()">
+        <div class="card-heading">
+          <h2>Información de la actividad</h2>
+          <p>Los campos marcados con * son obligatorios.</p>
+        </div>
+
+        <div class="form-grid">
+          <label class="field full-width">
+            <span>Lote *</span>
+            <select formControlName="lote_id">
+              <option [ngValue]="0" disabled>Selecciona un lote</option>
+              @for (lote of lotes(); track lote.id) { <option [ngValue]="lote.id">{{ loteLabel(lote) }}</option> }
+            </select>
+            @if (form.controls.lote_id.touched && form.controls.lote_id.invalid) { <small class="field-error">Debes seleccionar un lote.</small> }
+          </label>
+
+          <label class="field">
+            <span>Tipo de actividad *</span>
+            <select formControlName="tipo_actividad">
+              @for (tipo of tiposActividad; track tipo.value) { <option [value]="tipo.value">{{ tipo.label }}</option> }
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Fecha *</span>
+            <input type="date" formControlName="fecha" />
+            @if (form.controls.fecha.touched && form.controls.fecha.invalid) { <small class="field-error">Indica la fecha de la actividad.</small> }
+          </label>
+
+          <label class="field">
+            <span>Costo (COP) *</span>
+            <input type="number" formControlName="costo" min="0" step="0.01" placeholder="0" />
+            @if (form.controls.costo.touched && form.controls.costo.invalid) { <small class="field-error">Indica un costo igual o mayor a cero.</small> }
+          </label>
+
+          <label class="field full-width">
+            <span>Observaciones técnicas</span>
+            <textarea formControlName="observaciones" rows="5" maxlength="65535" placeholder="Detalles del trabajo realizado, hallazgos o recomendaciones."></textarea>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <a class="button secondary" [routerLink]="['/activities']">Cancelar</a>
+          <button class="primary" type="submit" [disabled]="isSaving()">{{ isSaving() ? 'Guardando…' : (isEdit() ? 'Guardar cambios' : 'Crear actividad') }}</button>
+        </div>
+      </form>
+    }
+  </main>
+</section>

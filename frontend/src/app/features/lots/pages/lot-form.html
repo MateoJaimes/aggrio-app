@@ -1,0 +1,109 @@
+<section class="page-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">A</span>
+      <div><small>Panel</small><strong>Aggrio</strong></div>
+    </div>
+
+    <nav class="nav">
+      <a class="nav-item" [routerLink]="['/estates']"><span>🏡</span>Fincas</a>
+      <a class="nav-item active" [routerLink]="['/lots']"><span>🌱</span>Lotes</a>
+      <a class="nav-item" [routerLink]="['/activities']"><span>📋</span>Actividades</a>
+      <a class="nav-item" [routerLink]="['/iot']"><span>📡</span>Lecturas IoT</a>
+      <a class="nav-item" [routerLink]="['/multimedia']"><span>🖼️</span>Archivos Multimedia</a>
+      <a class="nav-item" [routerLink]="['/access-requests']"><span>📥</span>Solicitudes de acceso</a>
+    </nav>
+
+    <div class="sidebar-card">
+      <p>Datos requeridos</p>
+      <div class="help-item">Selecciona la finca dueña del lote.</div>
+      <div class="help-item">Las hectáreas no pueden superar el área disponible.</div>
+      <div class="help-item">Registra el estado operativo actual.</div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="topbar">
+      <div>
+        <p class="eyebrow">Supervisión de operación de campo</p>
+        <h1>{{ isEdit() ? 'Editar lote' : 'Nuevo lote' }}</h1>
+      </div>
+      <a class="button secondary" [routerLink]="['/lots']">Volver al listado</a>
+    </div>
+
+    @if (error()) { <div class="alert error">{{ error() }}</div> }
+
+    @if (isLoading()) {
+      <div class="loading-card">Cargando información del lote...</div>
+    } @else {
+      <form class="form-card" [formGroup]="form" (ngSubmit)="submit()">
+        <div class="card-heading">
+          <h2>Información del lote</h2>
+          <p>Los campos marcados con * son obligatorios.</p>
+        </div>
+
+        <div class="form-grid">
+          <label class="field full-width">
+            <span>Finca *</span>
+            <select formControlName="finca_id">
+              <option [ngValue]="0" disabled>Selecciona una finca</option>
+              @for (finca of fincas(); track finca.id) { <option [ngValue]="finca.id">{{ fincaLabel(finca) }}</option> }
+            </select>
+            @if (form.controls.finca_id.touched && form.controls.finca_id.invalid) { <small class="field-error">Debes seleccionar una finca.</small> }
+          </label>
+
+          <label class="field">
+            <span>Nombre o sector *</span>
+            <input type="text" formControlName="nombre" placeholder="Ej. Lote El Mirador" maxlength="255" />
+            @if (form.controls.nombre.touched && form.controls.nombre.invalid) { <small class="field-error">Ingresa el nombre del lote.</small> }
+          </label>
+
+          <label class="field">
+            <span>Hectáreas *</span>
+            <input type="number" formControlName="hectareas" min="0.01" step="0.01" />
+            @if (form.controls.hectareas.touched && form.controls.hectareas.invalid) { <small class="field-error">Indica un valor mayor a 0.</small> }
+          </label>
+
+          <label class="field">
+            <span>Tipo de cultivo *</span>
+            <input type="text" formControlName="tipo_cultivo" list="cultivos" placeholder="Ej. Cacao" maxlength="255" />
+            <datalist id="cultivos"><option value="Cacao"></option><option value="Café"></option><option value="Aguacate"></option><option value="Maíz"></option><option value="Otro"></option></datalist>
+            @if (form.controls.tipo_cultivo.touched && form.controls.tipo_cultivo.invalid) { <small class="field-error">Ingresa el cultivo.</small> }
+          </label>
+
+          <label class="field">
+            <span>Variedad</span>
+            <input type="text" formControlName="variedad" placeholder="Ej. CCN51" maxlength="255" />
+          </label>
+
+          <label class="field">
+            <span>Fecha de siembra</span>
+            <input type="date" formControlName="fecha_siembra" [max]="today" />
+          </label>
+
+          <label class="field">
+            <span>Estado *</span>
+            <select formControlName="estado">
+              <option value="disponible">Disponible</option>
+              <option value="en_uso">En uso</option>
+              <option value="no_disponible">No disponible</option>
+            </select>
+          </label>
+        </div>
+
+        <fieldset class="coordinates">
+          <legend>Coordenadas GPS (opcional)</legend>
+          <div class="form-grid">
+            <label class="field"><span>Latitud</span><input type="number" formControlName="latitud" min="-90" max="90" step="0.00000001" placeholder="Ej. 4.6097100" /></label>
+            <label class="field"><span>Longitud</span><input type="number" formControlName="longitud" min="-180" max="180" step="0.00000001" placeholder="Ej. -74.0817500" /></label>
+          </div>
+        </fieldset>
+
+        <div class="form-actions">
+          <a class="button secondary" [routerLink]="['/lots']">Cancelar</a>
+          <button class="primary" type="submit" [disabled]="isSaving()">{{ isSaving() ? 'Guardando…' : (isEdit() ? 'Guardar cambios' : 'Crear lote') }}</button>
+        </div>
+      </form>
+    }
+  </main>
+</section>

@@ -3,12 +3,139 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Actividad;
 use App\Models\Lote;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class ActividadApiController extends Controller
 {
+    private const TIPOS_ACTIVIDAD = [
+        'preparacion',
+        'siembra',
+        'fertilizacion',
+        'riego',
+        'control_plagas',
+        'poda',
+        'cosecha',
+        'mantenimiento',
+    ];
+
+    /**
+     * Listar globalmente las actividades agrícolas para el panel Superadmin.
+     */
+    public function indexAdmin(Request $request): JsonResponse
+    {
+        if (! $this->isSuperAdmin($request)) {
+            return $this->adminAccessDenied();
+        }
+
+        $request->validate([
+            'tipo_actividad' => 'nullable|in:' . implode(',', self::TIPOS_ACTIVIDAD),
+        ]);
+
+        $actividades = Actividad::with(['lote.finca.user'])
+            ->when(
+                $request->filled('tipo_actividad'),
+                fn ($query) => $query->where('tipo_actividad', $request->string('tipo_actividad')->toString())
+            )
+            ->orderByDesc('fecha')
+            ->orderByDesc('id')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Actividades recuperadas con éxito.',
+            'data' => $actividades,
+        ], 200);
+    }
+
+    /**
+     * Consultar una actividad globalmente desde el panel Superadmin.
+     */
+    public function showAdmin(Request $request, int $id): JsonResponse
+    {
+        if (! $this->isSuperAdmin($request)) {
+            return $this->adminAccessDenied();
+        }
+
+        $actividad = Actividad::with(['lote.finca.user'])->find($id);
+
+        if (! $actividad) {
+            return $this->actividadNoEncontrada();
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $actividad,
+        ], 200);
+    }
+
+    /**
+     * Crear una actividad en cualquier lote desde el panel Superadmin.
+     */
+    public function storeAdmin(Request $request): JsonResponse
+    {
+        if (! $this->isSuperAdmin($request)) {
+            return $this->adminAccessDenied();
+        }
+
+        $actividad = Actividad::create($this->validateAdminActividad($request));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Actividad creada exitosamente.',
+            'data' => $actividad->load(['lote.finca.user']),
+        ], 201);
+    }
+
+    /**
+     * Actualizar una actividad desde el panel Superadmin.
+     */
+    public function updateAdmin(Request $request, int $id): JsonResponse
+    {
+        if (! $this->isSuperAdmin($request)) {
+            return $this->adminAccessDenied();
+        }
+
+        $actividad = Actividad::find($id);
+
+        if (! $actividad) {
+            return $this->actividadNoEncontrada();
+        }
+
+        $actividad->update($this->validateAdminActividad($request));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Actividad actualizada exitosamente.',
+            'data' => $actividad->fresh()->load(['lote.finca.user']),
+        ], 200);
+    }
+
+    /**
+     * Eliminar una actividad desde el panel Superadmin.
+     */
+    public function destroyAdmin(Request $request, int $id): JsonResponse
+    {
+        if (! $this->isSuperAdmin($request)) {
+            return $this->adminAccessDenied();
+        }
+
+        $actividad = Actividad::find($id);
+
+        if (! $actividad) {
+            return $this->actividadNoEncontrada();
+        }
+
+        $actividad->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Actividad eliminada exitosamente.',
+        ], 200);
+    }
+
     /**
      * Registra una nueva labor agrícola en un lote específico desde Flutter
      */
@@ -77,5 +204,37 @@ class ActividadApiController extends Controller
             'success' => true,
             'data'    => $actividades
         ], 200);
+    }
+
+    private function validateAdminActividad(Request $request): array
+    {
+        return $request->validate([
+            'lote_id' => 'required|integer|exists:lotes,id',
+            'tipo_actividad' => 'required|in:' . implode(',', self::TIPOS_ACTIVIDAD),
+            'fecha' => 'required|date',
+            'costo' => 'required|numeric|min:0',
+            'observaciones' => 'nullable|string',
+        ]);
+    }
+
+    private function isSuperAdmin(Request $request): bool
+    {
+        return (bool) $request->user()?->isSuperAdmin();
+    }
+
+    private function adminAccessDenied(): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'No tienes permisos para acceder a esta funcionalidad.',
+        ], 403);
+    }
+
+    private function actividadNoEncontrada(): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'Actividad no encontrada.',
+        ], 404);
     }
 }

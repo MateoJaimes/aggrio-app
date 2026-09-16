@@ -1,0 +1,163 @@
+<section class="page-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">A</span>
+      <div><small>Panel</small><strong>Aggrio</strong></div>
+    </div>
+
+    <nav class="nav">
+      <a class="nav-item" [routerLink]="['/estates']"><span>🏡</span>Fincas</a>
+      <a class="nav-item" [routerLink]="['/lots']"><span>🌱</span>Lotes</a>
+      <a class="nav-item" [routerLink]="['/activities']"><span>📋</span>Actividades</a>
+      <a class="nav-item" [routerLink]="['/iot']"><span>📡</span>Lecturas IoT</a>
+      <a class="nav-item active" [routerLink]="['/multimedia']"><span>🖼️</span>Archivos Multimedia</a>
+      <a class="nav-item" [routerLink]="['/access-requests']"><span>📥</span>Solicitudes de acceso</a>
+    </nav>
+
+    <div class="sidebar-card">
+      <p>Resumen de archivos</p>
+      <div class="mini-stat"><span>Total</span><strong>{{ archivos().length }}</strong></div>
+      <div class="mini-stat"><span>Mostrados</span><strong>{{ visibleArchivos().length }}</strong></div>
+      <div class="mini-stat"><span>Propietarios</span><strong>{{ owners().length }}</strong></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="topbar">
+      <div>
+        <p class="eyebrow">Supervisión de operación de campo</p>
+        <h1>Archivos Multimedia</h1>
+      </div>
+      <button class="button primary" type="button" (click)="loadArchivos()" [disabled]="isLoading()">Actualizar</button>
+    </div>
+
+    @if (error()) { <div class="alert error">{{ error() }}</div> }
+    @if (notice()) { <div class="alert success">{{ notice() }}</div> }
+
+    <section class="table-panel">
+      <div class="panel-header">
+        <div>
+          <h2>Todos los archivos y notas</h2>
+          <p>Consulta, clasifica y administra los archivos de todas las fincas.</p>
+        </div>
+        <span class="result-count">{{ visibleArchivos().length }} resultados</span>
+      </div>
+
+      <div class="filters">
+        <label>
+          <span>Propietario de finca</span>
+          <select [value]="selectedOwnerId() ?? ''" (change)="filterByOwner($event)" [disabled]="isLoadingOwners()">
+            <option value="">Todos los propietarios</option>
+            @for (owner of owners(); track owner.id) { <option [value]="owner.id">{{ owner.name }}{{ owner.email ? ' · ' + owner.email : '' }}</option> }
+          </select>
+        </label>
+
+        <label>
+          <span>Buscar</span>
+          <input type="search" placeholder="Propietario, finca, tipo o contenido" (input)="setSearch($event)" />
+        </label>
+      </div>
+
+      @if (isLoading()) {
+        <div class="loading">Cargando archivos multimedia...</div>
+      } @else {
+        <div class="evidence-grid">
+          @for (archivo of visibleArchivos(); track archivo.id) {
+            <article class="evidence-card">
+              <div class="media-preview">
+                @if (isImage(archivo) && archivo.url_archivo) {
+                  <img [src]="archivo.url_archivo" [alt]="'Archivo de ' + ownerName(archivo)" />
+                } @else if (isVideo(archivo)) {
+                  <span class="media-icon">🎬</span>
+                  <span>Video</span>
+                } @else if (isAudio(archivo)) {
+                  <span class="media-icon">🎙️</span>
+                  <span>Audio</span>
+                } @else if (isTextNote(archivo)) {
+                  <span class="media-icon">📝</span>
+                  <span>Nota de texto</span>
+                } @else {
+                  <span class="media-icon">📎</span>
+                  <span>Archivo</span>
+                }
+              </div>
+
+              <div class="card-content">
+                <div class="card-labels">
+                  <span class="type-badge">{{ fileTypeLabel(archivo) }}</span>
+                  <span class="category-badge" [class.disease]="archivo.categoria === 'enfermedad'">{{ categoryLabel(archivo.categoria) }}</span>
+                </div>
+                <h3>{{ ownerName(archivo) }}</h3>
+                <p class="context">{{ contextLabel(archivo) }}</p>
+                @if (archivo.contenido_texto) { <p class="snippet">{{ archivo.contenido_texto }}</p> }
+                <div class="card-meta"><span>{{ archivo.created_at ? (archivo.created_at | date:'dd/MM/yyyy, HH:mm') : 'Sin fecha' }}</span><span>{{ formatSize(archivo.peso_bytes) }}</span></div>
+                <div class="card-actions">
+                  <button type="button" class="details" (click)="openDetails(archivo)">Ver y administrar</button>
+                  <button type="button" class="delete" (click)="deleteArchivo(archivo)" [disabled]="deletingId() === archivo.id">{{ deletingId() === archivo.id ? 'Eliminando…' : 'Eliminar' }}</button>
+                </div>
+              </div>
+            </article>
+          } @empty {
+            <div class="empty-state">No hay archivos que coincidan con los filtros seleccionados.</div>
+          }
+        </div>
+      }
+    </section>
+  </main>
+</section>
+
+@if (selectedArchivo(); as archivo) {
+  <div class="modal-backdrop" (click)="closeDetails()">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="media-detail-title" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div>
+          <p class="eyebrow">Archivo #{{ archivo.id }}</p>
+          <h2 id="media-detail-title">{{ fileTypeLabel(archivo) }} · {{ ownerName(archivo) }}</h2>
+        </div>
+        <button type="button" class="close" aria-label="Cerrar detalle" (click)="closeDetails()">×</button>
+      </header>
+
+      <div class="detail-grid">
+        <section class="preview-pane">
+          @if (isImage(archivo) && archivo.url_archivo) {
+            <img [src]="archivo.url_archivo" [alt]="'Archivo de ' + ownerName(archivo)" />
+          } @else if (isVideo(archivo) && archivo.url_archivo) {
+            <video controls [src]="archivo.url_archivo">Tu navegador no puede reproducir este video.</video>
+          } @else if (isAudio(archivo) && archivo.url_archivo) {
+            <audio controls [src]="archivo.url_archivo">Tu navegador no puede reproducir este audio.</audio>
+          } @else if (isTextNote(archivo)) {
+            <article class="text-note">{{ archivo.contenido_texto || 'Esta nota no contiene texto.' }}</article>
+          } @else {
+            <div class="file-placeholder"><span>📎</span><p>Vista previa no disponible para este formato.</p></div>
+          }
+
+          @if (archivo.url_archivo) {
+            <a class="open-file" [href]="archivo.url_archivo" target="_blank" rel="noopener noreferrer">Abrir archivo original</a>
+          }
+        </section>
+
+        <section class="metadata-pane">
+          <div class="metadata-row"><span>Propietario</span><strong>{{ ownerName(archivo) }}</strong></div>
+          <div class="metadata-row"><span>Ubicación</span><strong>{{ contextLabel(archivo) }}</strong></div>
+          <div class="metadata-row"><span>Tamaño</span><strong>{{ formatSize(archivo.peso_bytes) }}</strong></div>
+          <div class="metadata-row"><span>Registrado</span><strong>{{ archivo.created_at ? (archivo.created_at | date:'dd/MM/yyyy, HH:mm') : 'Sin fecha' }}</strong></div>
+
+          <form [formGroup]="metadataForm" (ngSubmit)="saveMetadata()" class="metadata-form">
+            <label>
+              <span>Categoría</span>
+              <select formControlName="categoria">
+                <option value="seguimiento">Seguimiento</option>
+                <option value="enfermedad">Enfermedad</option>
+              </select>
+            </label>
+            <label>
+              <span>Nota o transcripción</span>
+              <textarea formControlName="contenido_texto" rows="6" maxlength="65535" placeholder="Añade o corrige el contexto del archivo."></textarea>
+            </label>
+            <button class="button primary" type="submit" [disabled]="isSaving()">{{ isSaving() ? 'Guardando…' : 'Guardar metadatos' }}</button>
+          </form>
+        </section>
+      </div>
+    </section>
+  </div>
+}
