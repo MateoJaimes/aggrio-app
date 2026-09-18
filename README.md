@@ -2,15 +2,14 @@
 
 Plataforma digital de trazabilidad e inteligencia agrícola (sector cacaotero). Centraliza el registro de fincas, lotes, actividades, evidencia multimedia georreferenciada y lecturas de sensores IoT.
 
-Este repositorio contiene el **backend** (Laravel, en la raíz del repo) y el **frontend en migración** (Angular, en `frontend/`). El panel administrativo actual está construido en **Filament** y sigue siendo la herramienta real de gestión mientras se completa la migración a Angular, módulo por módulo.
+Este repositorio contiene el **backend API** (Laravel, en la raíz del repo) y el **frontend** (Angular, en `frontend/`). Angular es la única interfaz de administración; Laravel no expone panel web.
 
 ## Stack
 
 | Capa | Tecnología |
 | --- | --- |
 | Backend / API REST | Laravel 13 + Sanctum (auth por token Bearer) |
-| Admin panel (actual) | Filament 5 |
-| Admin panel (en migración) | Angular 21 |
+| Panel de administración | Angular 21 |
 | Almacenamiento de archivos | MinIO (compatible con S3) |
 | Base de datos | MySQL |
 
@@ -25,17 +24,17 @@ Este repositorio contiene el **backend** (Laravel, en la raíz del repo) y el **
 
 Necesitas **dos servidores corriendo en paralelo**: uno para el backend y otro para Angular.
 
-### 1. Backend (Laravel + Filament)
+### 1. Backend (Laravel API)
 
 ```bash
 composer install
 cp .env.example .env   # si no existe, crear con las credenciales de BD y MinIO
 php artisan key:generate
 php artisan migrate
-php artisan serve       # http://localhost:8000
+php artisan serve       # API: http://localhost:8000
 ```
 
-El panel de Filament queda disponible en `http://localhost:8000/admin`.
+Al abrir `http://localhost:8000`, Laravel redirige al login de Angular en `http://localhost:4200/auth/login`. Por eso Angular debe estar levantado también.
 
 ### 2. Frontend (Angular)
 
@@ -51,7 +50,7 @@ Con ambos corriendo: abre `http://localhost:4200`, el login pega contra la API r
 
 ## Cómo se conectan Angular y Laravel
 
-**Angular nunca toca la base de datos ni Filament directamente.** Solo consume la API REST bajo `/api/*` — la misma que ya usa la app de Flutter.
+**Angular nunca toca la base de datos directamente.** Solo consume la API REST bajo `/api/*` — la misma que ya usa la app de Flutter.
 
 **La autenticación es por token, no por cookie de sesión.** No usamos el flujo "SPA" de Sanctum (`/sanctum/csrf-cookie`, `withCredentials`). El flujo real es:
 
@@ -103,14 +102,9 @@ Convenciones:
 - Cada feature trae su propio `*.routes.ts` (lazy-loaded) y no importa directamente de otra feature — si dos módulos necesitan compartir algo, ese algo va en `shared/` o `core/`.
 - `multimedia` tiene dos servicios porque la subida es un proceso de dos llamadas (`presigned-url.service.ts` + `multimedia.service.ts`), no uno solo.
 
-## Orden de migración (Filament → Angular)
+## Panel Angular
 
-No se migra todo de una vez. Filament sigue siendo el panel real hasta que cada módulo esté probado en Angular:
-
-1. **Estates + Lots** — ya tienen API completa, es el core del dominio.
-2. **Activities**
-3. **Multimedia** — más compleja por el flujo de presigned URL.
-4. **IoT** — al final.
+El panel Angular consume la API de Laravel y concentra las funciones administrativas. Las nuevas funcionalidades deben implementarse allí y exponer únicamente los endpoints de API necesarios.
 
 ## Comandos útiles
 
@@ -127,9 +121,8 @@ php artisan migrate:fresh --seed   # resetear BD local con datos de prueba
 
 **Angular** (`frontend/src/environments/`): `apiUrl` apunta a `http://localhost:8000/api` en desarrollo. No hardcodear URLs en los servicios.
 
-**Laravel** (`.env`): credenciales de BD y de MinIO. `config/cors.php` tiene `allowed_origins => ['*']` para desarrollo local — **hay que restringirlo al dominio real antes de pasar a producción**.
+**Laravel** (`.env`): credenciales de BD, MinIO, `FRONTEND_URL` y las credenciales iniciales `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD`. `config/cors.php` tiene `allowed_origins => ['*']` para desarrollo local — **hay que restringirlo al dominio real antes de pasar a producción**.
 
 ## Dudas frecuentes
 
-- **¿Por qué no veo mis cambios en Filament reflejados en Angular?** Angular no lee de Eloquent ni de los `Resources` de Filament, solo de `routes/api.php`. Si algo existe en Filament pero no está expuesto como endpoint de API, Angular no puede verlo.
 - **¿Dónde reporto que falta un endpoint?** Ábrelo como issue en el repo backend antes de improvisar la lógica en el frontend.

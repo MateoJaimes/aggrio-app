@@ -10,10 +10,8 @@ use PragmaRX\Google2FAQRCode\Google2FA;
 /**
  * Doble factor TOTP (Google Authenticator / Authy / 1Password). RF003.
  *
- * Usa la misma librería y el mismo formato de datos que el proveedor
- * Filament\Auth\MultiFactor\App\AppAuthentication, de modo que el panel Filament
- * y esta API comparten un único secreto y un único juego de códigos de
- * recuperación: lo que el usuario da de alta en Angular le sirve en /sistema.
+ * El secreto y los códigos de recuperación pertenecen a la cuenta del usuario,
+ * de modo que el panel Angular puede completar el alta sin exponerlos de nuevo.
  */
 class TwoFactorService
 {
@@ -69,8 +67,8 @@ class TwoFactorService
      * Genera un juego nuevo de códigos, guarda su hash en el usuario y devuelve
      * los códigos en claro, que es la única vez que pueden mostrarse.
      *
-     * Se guardan hasheados (no cifrados) igual que hace Filament: un código de
-     * recuperación no necesita poder leerse, sólo compararse.
+     * Se guardan hasheados (no cifrados): un código de recuperación no necesita
+     * poder leerse, sólo compararse.
      *
      * @return list<string>
      */
@@ -89,8 +87,7 @@ class TwoFactorService
     }
 
     /**
-     * Mismo formato que Filament, para que los códigos de una y otra puerta
-     * sean indistinguibles.
+     * Formato fácil de guardar y de introducir manualmente.
      *
      * @return list<string>
      */
