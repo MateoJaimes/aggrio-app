@@ -72,6 +72,142 @@ class FincaApiController extends Controller
     }
 
     /**
+     * Listar todas las fincas para el panel de administración Angular (RF001)
+     */
+    public function indexAdmin(Request $request): JsonResponse
+    {
+        if (! $request->user()->isSuperAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permisos para acceder a esta funcionalidad.'
+            ], 403);
+        }
+
+        $fincas = Finca::with('user')->orderBy('id')->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Fincas recuperadas con éxito',
+            'data'    => $fincas,
+        ], 200);
+    }
+
+    /**
+     * Cambiar el estado de una finca desde el panel de administración Angular (RF002/RF003)
+     */
+    public function updateEstadoAdmin(Request $request, $id): JsonResponse
+    {
+        if (! $request->user()->isSuperAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permisos para acceder a esta funcionalidad.'
+            ], 403);
+        }
+
+        $request->validate([
+            'accion' => 'required|in:aprobar,rechazar',
+        ]);
+
+        $finca = Finca::find($id);
+
+        if (! $finca) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Finca no encontrada.'
+            ], 404);
+        }
+
+        if ($finca->estado !== 'pendiente') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo se puede cambiar el estado de fincas en estado pendiente.'
+            ], 422);
+        }
+
+        $nuevoEstado = $request->accion === 'aprobar' ? 'aprobado' : 'rechazado';
+        $finca->update(['estado' => $nuevoEstado]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Estado de la finca actualizado exitosamente',
+            'data'    => $finca,
+        ], 200);
+    }
+
+    /**
+     * Crear una finca desde el panel de administración Angular (RF004)
+     */
+    public function storeAdmin(Request $request): JsonResponse
+    {
+        if (! $request->user()->isSuperAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permisos para acceder a esta funcionalidad.'
+            ], 403);
+        }
+
+        $request->validate([
+            'user_id'           => 'required|exists:users,id',
+            'nombre'            => 'sometimes|string|max:255',
+            'latitud'           => 'required|numeric|between:-90,90',
+            'longitud'          => 'required|numeric|between:-180,180',
+            'hectareas_totales' => 'required|numeric|min:0',
+            'tipo_suelo'        => 'nullable|string|max:255',
+        ]);
+
+        $finca = Finca::create($request->only([
+            'user_id', 'nombre', 'latitud', 'longitud', 'hectareas_totales', 'tipo_suelo'
+        ]));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Finca creada exitosamente',
+            'data'    => $finca->load('user'),
+        ], 201);
+    }
+
+    /**
+     * Editar una finca desde el panel de administración Angular (RF004)
+     */
+    public function updateAdmin(Request $request, $id): JsonResponse
+    {
+        if (! $request->user()->isSuperAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permisos para acceder a esta funcionalidad.'
+            ], 403);
+        }
+
+        $request->validate([
+            'user_id'           => 'required|exists:users,id',
+            'nombre'            => 'sometimes|string|max:255',
+            'latitud'           => 'required|numeric|between:-90,90',
+            'longitud'          => 'required|numeric|between:-180,180',
+            'hectareas_totales' => 'required|numeric|min:0',
+            'tipo_suelo'        => 'nullable|string|max:255',
+        ]);
+
+        $finca = Finca::find($id);
+
+        if (! $finca) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Finca no encontrada.'
+            ], 404);
+        }
+
+        $finca->update($request->only([
+            'user_id', 'nombre', 'latitud', 'longitud', 'hectareas_totales', 'tipo_suelo'
+        ]));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Finca actualizada exitosamente',
+            'data'    => $finca->fresh()->load('user'),
+        ], 200);
+    }
+
+    /**
      * Subir archivos al Data Lake (Fotos, Audios, etc.) y vincularlos a la Finca
      */
     public function subirMultimedia(Request $request, $id): JsonResponse

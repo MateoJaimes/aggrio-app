@@ -3,69 +3,122 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AccessRequest;
+use App\Models\TwoFactorChallenge;
 use App\Models\User;
+use App\Services\ApiTokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 class AuthApiController extends Controller
 {
+    public function __construct(private readonly ApiTokenService $tokens) {}
+
     /**
-     * Login - Devuelve token Bearer
+     * Login (paso 1).
+     *
+     * Valida las credenciales y:
+     *   - si el rol exige doble factor (RF003), NO entrega tokens: devuelve un
+     *     challenge_token temporal con el que el cliente llamará a /login/2fa/verify;
+     *   - en caso contrario entrega directamente el par access + refresh (RF004).
      */
     public function login(Request $request): JsonResponse
     {
         $request->validate([
-            'email'       => 'required|email',
-            'password'    => 'required|string',
-            'device_name' => 'nullable|string',   // Nombre de la app que consume
+            'email' => 'required|email',
+            'password' => 'required|string',
+            'device_name' => 'nullable|string|max:60',   // Nombre de la app que consume
         ]);
+
+        $throttleKey = 'login:'.Str::lower($request->input('email')).'|'.$request->ip();
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Demasiados intentos fallidos. Intenta de nuevo en '
+                    .RateLimiter::availableIn($throttleKey).' segundos.',
+            ], 429);
+        }
 
         $user = User::where('email', $request->email)->first();
 
-        //version nueva
         // 1. Verificar credenciales básicas
         if (! $user || ! Hash::check($request->password, $user->password)) {
+            RateLimiter::hit($throttleKey, 300);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Credenciales incorrectas.'
+                'message' => 'Credenciales incorrectas.',
             ], 401);
         }
 
-        // 2. NUEVA VERIFICACIÓN: Consultar el estado en la tabla de solicitudes
-        // Importante: Asegúrate de importar use App\Models\AccessRequest; arriba
-        $solicitud = \App\Models\AccessRequest::where('email', $request->email)->first();
+        // 2. Los productores necesitan una solicitud de acceso aprobada.
+        //    El superadmin no pasa por ese flujo, así que queda exento.
+        if (! $user->isSuperAdmin()) {
+            $solicitud = AccessRequest::where('email', $request->email)->first();
 
-        if (!$solicitud || $solicitud->status !== 'approved') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tu acceso no ha sido aprobado o ha sido revocado.'
-            ], 403); // Error 403: Prohibido
+            if (! $solicitud || $solicitud->status !== 'approved') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tu acceso no ha sido aprobado o ha sido revocado.',
+                ], 403); // Error 403: Prohibido
+            }
         }
+
+        RateLimiter::clear($throttleKey);
 
         $deviceName = $request->device_name ?? 'api-client';
 
-        // $token = $user->createToken($deviceName)->plainTextToken;
+        // 3. Doble factor obligatorio para el rol Superadmin (RF003).
+        if ($user->requiresTwoFactor()) {
+            [, $challengeToken] = TwoFactorChallenge::issueFor($user, $deviceName);
 
-        // Eliminamos todos los tokens anteriores para forzar una única sesión activa
-        $user->tokens()->delete();
-
-        // Generamos el nuevo y único token válido
-        $token = $user->createToken($deviceName)->plainTextToken;
+            return response()->json([
+                'success' => true,
+                'message' => $user->hasConfirmedTwoFactor()
+                    ? 'Ingresa el código de tu aplicación autenticadora.'
+                    : 'Debes configurar la autenticación en dos pasos para continuar.',
+                'data' => [
+                    'requires_two_factor' => true,
+                    // Cuando es false, el cliente debe llevar al usuario al alta
+                    // del TOTP (/2fa/setup) usando este mismo challenge_token.
+                    'two_factor_enrolled' => $user->hasConfirmedTwoFactor(),
+                    'challenge_token' => $challengeToken,
+                    'expires_in' => (int) config('sanctum.two_factor_challenge_ttl', 5) * 60,
+                ],
+            ], 200);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Login exitoso',
-            'data'    => [
-                'user'  => [
-                    'id'    => $user->id,
-                    'name'  => $user->name,
-                    'email' => $user->email,
-                ],
-                'token' => $token,
-                'type'  => 'Bearer',
+            'data' => [
+                'requires_two_factor' => false,
+                'user' => $user->toAuthPayload(),
+                ...$this->tokens->issue($user, $deviceName),
+            ],
+        ], 200);
+    }
+
+    /**
+     * Renueva el par de tokens a partir del refresh token (RF004).
+     *
+     * Ruta protegida con la ability "token:refresh", así que sólo el refresh
+     * token puede llamarla; el access token normal no sirve aquí.
+     */
+    public function refresh(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sesión renovada',
+            'data' => [
+                'user' => $user->toAuthPayload(),
+                ...$this->tokens->rotate($user, $request->user()->currentAccessToken()),
             ],
         ], 200);
     }
@@ -77,18 +130,23 @@ class AuthApiController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data'    => [
-                'user' => $request->user(),
+            'data' => [
+                'user' => $request->user()->toAuthPayload(),
             ],
         ], 200);
     }
 
     /**
-     * Logout - Revoca el token actual
+     * Logout - Revoca el par de tokens de la sesión actual
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+
+        $this->tokens->revokeSession(
+            $user,
+            $this->tokens->sessionIdFor($user->currentAccessToken()),
+        );
 
         return response()->json([
             'success' => true,
@@ -101,7 +159,7 @@ class AuthApiController extends Controller
      */
     public function logoutAll(Request $request): JsonResponse
     {
-        $request->user()->tokens()->delete();
+        $this->tokens->revokeAll($request->user());
 
         return response()->json([
             'success' => true,

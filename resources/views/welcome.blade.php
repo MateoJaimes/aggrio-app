@@ -37,7 +37,7 @@
             Agro<span>Tech</span>
         </a>
 
-        <a href="{{ url('/sistema/login') }}" class="btn btn-outline" style="display: flex; align-items: center; gap: 0.5rem; border-radius: 50px; padding: 0.5rem 1.25rem;">
+        <a href="{{ rtrim(config('app.frontend_url'), '/') }}/auth/login" class="btn btn-outline" style="display: flex; align-items: center; gap: 0.5rem; border-radius: 50px; padding: 0.5rem 1.25rem;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
                 <circle cx="12" cy="7" r="4"></circle>
@@ -52,7 +52,7 @@
             <h1>Gestión Inteligente de <br>Fincas y Terrenos</h1>
             <p>Optimice sus recursos, monitorice el estado de sus tierras en tiempo real y tome decisiones basadas en datos para maximizar el rendimiento agrícola.</p>
             <div class="hero-buttons">
-                <a href="{{ url('/formulario') }}" class="btn btn-primary">Solicitar Acceso</a>
+                <a href="{{ rtrim(config('app.frontend_url'), '/') }}/auth/login" class="btn btn-primary">Solicitar Acceso</a>
                 <a href="#features" class="btn btn-outline">Explorar Plataforma</a>
             </div>
         </div>
@@ -162,3 +162,4 @@
     </script>
 </body>
 </html>
+
