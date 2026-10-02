@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
 /**
  * Crea (o promueve) la cuenta de Superadmin.
@@ -20,7 +21,14 @@ class SuperadminSeeder extends Seeder
 {
     public function run(): void
     {
-        $email = env('SUPERADMIN_EMAIL', 'admin@aggrio.co');
+        $email = env('SUPERADMIN_EMAIL');
+        $password = env('SUPERADMIN_PASSWORD');
+
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL) || ! is_string($password) || $password === '') {
+            throw new RuntimeException(
+                'Define SUPERADMIN_EMAIL y SUPERADMIN_PASSWORD antes de ejecutar el seeder.',
+            );
+        }
 
         $user = User::where('email', $email)->first();
 
@@ -31,8 +39,6 @@ class SuperadminSeeder extends Seeder
 
             return;
         }
-
-        $password = env('SUPERADMIN_PASSWORD', 'Aggrio2026*');
 
         User::create([
             'name' => env('SUPERADMIN_NAME', 'Superadmin Aggrio'),
