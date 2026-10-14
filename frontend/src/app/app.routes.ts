@@ -1,6 +1,12 @@
 import { Routes } from '@angular/router';
+import { adminGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
+  {
+    path: 'dashboard',
+    loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
+    canActivate: [adminGuard],
+  },
   {
     path: 'auth',
     loadChildren: () => import('./features/auth/auth.routes').then((m) => m.authRoutes),

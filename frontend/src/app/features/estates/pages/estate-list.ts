@@ -22,6 +22,10 @@ import { SessionMenu } from '../../../core/auth/session-menu';
         </div>
 
         <nav class="nav">
+          <a class="nav-item" [routerLink]="['/dashboard']">
+            <span>📊</span>
+            Dashboard ejecutivo
+          </a>
           <a class="nav-item active" [routerLink]="['/estates']">
             <span>🏡</span>
             Fincas
