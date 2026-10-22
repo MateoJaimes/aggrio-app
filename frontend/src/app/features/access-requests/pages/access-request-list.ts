@@ -1,15 +1,14 @@
+import { AdminSidebar } from '../../admin-sidebar';
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 
 import { AccessRequest, AccessRequestAction, AccessRequestStatus } from '../models/access-request.model';
 import { AccessRequestAdminService } from '../services/access-request-admin.service';
-import { SessionMenu } from '../../../core/auth/session-menu';
 
 @Component({
   selector: 'app-access-request-list',
   standalone: true,
-  imports: [CommonModule, DatePipe, RouterLink, SessionMenu],
+  imports: [AdminSidebar, CommonModule, DatePipe],
   templateUrl: './access-request-list.html',
   styleUrl: './access-request-list.scss',
 })

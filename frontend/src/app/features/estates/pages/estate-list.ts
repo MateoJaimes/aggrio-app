@@ -1,83 +1,18 @@
+import { AdminSidebar } from '../../admin-sidebar';
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { Finca } from '../models/finca.model';
 import { FincaAdminService } from '../services/finca-admin.service';
-import { SessionMenu } from '../../../core/auth/session-menu';
 
 @Component({
   selector: 'app-estate-list',
   standalone: true,
-  imports: [CommonModule, RouterLink, SessionMenu],
+  imports: [AdminSidebar, CommonModule, RouterLink],
   template: `
     <section class="page-shell">
-      <aside class="sidebar">
-        <div class="brand">
-          <span class="brand-mark">A</span>
-          <div>
-            <small>Panel</small>
-            <strong>Aggrio</strong>
-          </div>
-        </div>
-
-        <nav class="nav">
-          <a class="nav-item" [routerLink]="['/dashboard']">
-            <span>📊</span>
-            Dashboard ejecutivo
-          </a>
-          <a class="nav-item active" [routerLink]="['/estates']">
-            <span>🏡</span>
-            Fincas
-          </a>
-          <a class="nav-item" [routerLink]="['/lots']">
-            <span>🌱</span>
-            Lotes
-          </a>
-          <a class="nav-item" [routerLink]="['/activities']">
-            <span>📋</span>
-            Actividades
-          </a>
-          <a class="nav-item" [routerLink]="['/iot']">
-            <span>📡</span>
-            Lecturas IoT
-          </a>
-          <a class="nav-item" [routerLink]="['/multimedia']">
-            <span>🖼️</span>
-            Archivos Multimedia
-          </a>
-          <a class="nav-item" [routerLink]="['/access-requests']">
-            <span>📥</span>
-            Solicitudes de acceso
-          </a>
-          <a class="nav-item" [routerLink]="['/estates/new']">
-            <span>➕</span>
-            Nueva finca
-          </a>
-        </nav>
-
-        <div class="sidebar-card">
-          <p>Resumen</p>
-          <div class="mini-stat">
-            <span>Total</span>
-            <strong>{{ totalFincas() }}</strong>
-          </div>
-          <div class="mini-stat">
-            <span>Pendientes</span>
-            <strong>{{ pendientes() }}</strong>
-          </div>
-          <div class="mini-stat">
-            <span>Aprobadas</span>
-            <strong>{{ aprobadas() }}</strong>
-          </div>
-          <div class="mini-stat">
-            <span>Rechazadas</span>
-            <strong>{{ rechazadas() }}</strong>
-          </div>
-        </div>
-
-        <app-session-menu />
-      </aside>
+      <app-admin-sidebar />
 
       <main class="content">
         <div class="topbar">
@@ -181,106 +116,6 @@ import { SessionMenu } from '../../../core/auth/session-menu';
       .page-shell {
         display: flex;
         min-height: 100vh;
-      }
-
-      .sidebar {
-        width: 280px;
-        background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
-        color: white;
-        padding: 1.5rem 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-      }
-
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 0.8rem;
-        padding: 0.5rem 0.75rem;
-        border-radius: 1rem;
-        background: rgba(255, 255, 255, 0.06);
-      }
-
-      .brand-mark {
-        width: 2.2rem;
-        height: 2.2rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 0.75rem;
-        background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
-        font-weight: 800;
-      }
-
-      .brand small {
-        display: block;
-        font-size: 0.68rem;
-        opacity: 0.7;
-      }
-
-      .brand strong {
-        font-size: 1rem;
-      }
-
-      .nav {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-
-      .nav-item {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.85rem 0.9rem;
-        border-radius: 0.85rem;
-        color: rgba(255, 255, 255, 0.85);
-        text-decoration: none;
-        font-weight: 600;
-        transition: background 0.2s ease, transform 0.2s ease;
-      }
-
-      .nav-item:hover {
-        background: rgba(255, 255, 255, 0.08);
-        transform: translateX(2px);
-      }
-
-      .nav-item.active {
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.25);
-      }
-
-      .sidebar-card {
-        margin-top: auto;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 1rem;
-        padding: 1rem;
-      }
-
-      .sidebar-card p {
-        margin: 0 0 0.75rem;
-        opacity: 0.75;
-        text-transform: uppercase;
-        letter-spacing: 0.08rem;
-        font-size: 0.72rem;
-      }
-
-      .mini-stat {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.55rem 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      }
-
-      .mini-stat:last-child {
-        border-bottom: none;
-      }
-
-      .mini-stat span {
-        opacity: 0.8;
       }
 
       .content {

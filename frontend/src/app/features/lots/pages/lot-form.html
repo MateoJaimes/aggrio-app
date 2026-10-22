@@ -1,26 +1,5 @@
 <section class="page-shell">
-  <aside class="sidebar">
-    <div class="brand">
-      <span class="brand-mark">A</span>
-      <div><small>Panel</small><strong>Aggrio</strong></div>
-    </div>
-
-    <nav class="nav">
-      <a class="nav-item" [routerLink]="['/estates']"><span>🏡</span>Fincas</a>
-      <a class="nav-item active" [routerLink]="['/lots']"><span>🌱</span>Lotes</a>
-      <a class="nav-item" [routerLink]="['/activities']"><span>📋</span>Actividades</a>
-      <a class="nav-item" [routerLink]="['/iot']"><span>📡</span>Lecturas IoT</a>
-      <a class="nav-item" [routerLink]="['/multimedia']"><span>🖼️</span>Archivos Multimedia</a>
-      <a class="nav-item" [routerLink]="['/access-requests']"><span>📥</span>Solicitudes de acceso</a>
-    </nav>
-
-    <div class="sidebar-card">
-      <p>Datos requeridos</p>
-      <div class="help-item">Selecciona la finca dueña del lote.</div>
-      <div class="help-item">Las hectáreas no pueden superar el área disponible.</div>
-      <div class="help-item">Registra el estado operativo actual.</div>
-    </div>
-  </aside>
+  <app-admin-sidebar />
 
   <main class="content">
     <div class="topbar">

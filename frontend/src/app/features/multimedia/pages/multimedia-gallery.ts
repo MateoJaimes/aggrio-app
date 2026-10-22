@@ -1,7 +1,7 @@
+import { AdminSidebar } from '../../admin-sidebar';
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 
 import { Actividad } from '../../activities/models/actividad.model';
 import { Finca, UserSummary } from '../../estates/models/finca.model';
@@ -13,7 +13,7 @@ import { MultimediaAdminService } from '../services/multimedia-admin.service';
 @Component({
   selector: 'app-multimedia-gallery',
   standalone: true,
-  imports: [CommonModule, DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [AdminSidebar, CommonModule, DatePipe, ReactiveFormsModule],
   templateUrl: './multimedia-gallery.html',
   styleUrls: ['../../lots/pages/lots-shell.scss', '../../lots/pages/lot-list.scss', './multimedia-gallery.scss'],
 })

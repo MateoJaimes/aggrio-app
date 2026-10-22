@@ -1,3 +1,4 @@
+import { AdminSidebar } from '../../admin-sidebar';
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -9,54 +10,10 @@ import { Finca, UserSummary } from '../models/finca.model';
 @Component({
   selector: 'app-estate-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [AdminSidebar, CommonModule, ReactiveFormsModule, RouterLink],
   template: `
     <section class="page-shell">
-      <aside class="sidebar">
-        <div class="brand">
-          <span class="brand-mark">A</span>
-          <div>
-            <small>Panel</small>
-            <strong>Aggrio</strong>
-          </div>
-        </div>
-
-        <nav class="nav">
-          <a class="nav-item" [routerLink]="['/estates']">
-            <span>🏡</span>
-            Fincas
-          </a>
-          <a class="nav-item" [routerLink]="['/lots']">
-            <span>🌱</span>
-            Lotes
-          </a>
-          <a class="nav-item" [routerLink]="['/activities']">
-            <span>📋</span>
-            Actividades
-          </a>
-          <a class="nav-item" [routerLink]="['/iot']">
-            <span>📡</span>
-            Lecturas IoT
-          </a>
-          <a class="nav-item" [routerLink]="['/multimedia']">
-            <span>🖼️</span>
-            Archivos Multimedia
-          </a>
-          <a class="nav-item active" [routerLink]="['/estates/new']">
-            <span>➕</span>
-            Nueva finca
-          </a>
-        </nav>
-
-        <div class="sidebar-card">
-          <p>Guía rápida</p>
-          <ul>
-            <li>Selecciona el propietario.</li>
-            <li>Completa nombre, ubicación y hectáreas.</li>
-            <li>Guarda para publicar la finca.</li>
-          </ul>
-        </div>
-      </aside>
+      <app-admin-sidebar />
 
       <main class="content">
         <div class="topbar">
@@ -156,97 +113,6 @@ import { Finca, UserSummary } from '../models/finca.model';
       .page-shell {
         display: flex;
         min-height: 100vh;
-      }
-
-      .sidebar {
-        width: 280px;
-        background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
-        color: white;
-        padding: 1.5rem 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-      }
-
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 0.8rem;
-        padding: 0.5rem 0.75rem;
-        border-radius: 1rem;
-        background: rgba(255, 255, 255, 0.06);
-      }
-
-      .brand-mark {
-        width: 2.2rem;
-        height: 2.2rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 0.75rem;
-        background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
-        font-weight: 800;
-      }
-
-      .brand small {
-        display: block;
-        opacity: 0.7;
-        font-size: 0.68rem;
-      }
-
-      .brand strong {
-        font-size: 1rem;
-      }
-
-      .nav {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-
-      .nav-item {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.85rem 0.9rem;
-        border-radius: 0.85rem;
-        color: rgba(255, 255, 255, 0.85);
-        text-decoration: none;
-        font-weight: 600;
-        transition: background 0.2s ease, transform 0.2s ease;
-      }
-
-      .nav-item:hover {
-        background: rgba(255, 255, 255, 0.08);
-        transform: translateX(2px);
-      }
-
-      .nav-item.active {
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.25);
-      }
-
-      .sidebar-card {
-        margin-top: auto;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 1rem;
-        padding: 1rem;
-      }
-
-      .sidebar-card p {
-        margin: 0 0 0.75rem;
-        opacity: 0.75;
-        text-transform: uppercase;
-        letter-spacing: 0.08rem;
-        font-size: 0.72rem;
-      }
-
-      .sidebar-card ul {
-        margin: 0;
-        padding-left: 1rem;
-        color: rgba(255, 255, 255, 0.8);
-        line-height: 1.6;
       }
 
       .content {

@@ -1,26 +1,5 @@
 <section class="page-shell">
-  <aside class="sidebar">
-    <div class="brand">
-      <span class="brand-mark">A</span>
-      <div><small>Panel</small><strong>Aggrio</strong></div>
-    </div>
-
-    <nav class="nav">
-      <a class="nav-item" [routerLink]="['/estates']"><span>🏡</span>Fincas</a>
-      <a class="nav-item" [routerLink]="['/lots']"><span>🌱</span>Lotes</a>
-      <a class="nav-item active" [routerLink]="['/activities']"><span>📋</span>Actividades</a>
-      <a class="nav-item" [routerLink]="['/iot']"><span>📡</span>Lecturas IoT</a>
-      <a class="nav-item" [routerLink]="['/multimedia']"><span>🖼️</span>Archivos Multimedia</a>
-      <a class="nav-item" [routerLink]="['/access-requests']"><span>📥</span>Solicitudes de acceso</a>
-    </nav>
-
-    <div class="sidebar-card">
-      <p>Datos requeridos</p>
-      <div class="help-item">Selecciona el lote donde se realizó la labor.</div>
-      <div class="help-item">Clasifica la actividad para facilitar su seguimiento.</div>
-      <div class="help-item">Registra el costo total ejecutado.</div>
-    </div>
-  </aside>
+  <app-admin-sidebar />
 
   <main class="content">
     <div class="topbar">

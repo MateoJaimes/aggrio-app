@@ -1,28 +1,5 @@
 <section class="page-shell">
-  <aside class="sidebar">
-    <div class="brand">
-      <span class="brand-mark">A</span>
-      <div><small>Panel</small><strong>Aggrio</strong></div>
-    </div>
-
-    <nav class="nav" aria-label="Administración">
-      <a class="nav-item" [routerLink]="['/estates']"><span>🏡</span>Fincas</a>
-      <a class="nav-item" [routerLink]="['/lots']"><span>🌱</span>Lotes</a>
-      <a class="nav-item" [routerLink]="['/activities']"><span>📋</span>Actividades</a>
-      <a class="nav-item" [routerLink]="['/iot']"><span>📡</span>Lecturas IoT</a>
-      <a class="nav-item" [routerLink]="['/multimedia']"><span>🖼️</span>Archivos Multimedia</a>
-      <a class="nav-item active" [routerLink]="['/access-requests']"><span>📥</span>Solicitudes de acceso</a>
-    </nav>
-
-    <div class="sidebar-card">
-      <p>Resumen</p>
-      <div class="mini-stat"><span>Total</span><strong>{{ count() }}</strong></div>
-      <div class="mini-stat"><span>Pendientes</span><strong>{{ count('pending') }}</strong></div>
-      <div class="mini-stat"><span>En espera</span><strong>{{ count('waitlisted') }}</strong></div>
-    </div>
-
-    <app-session-menu />
-  </aside>
+  <app-admin-sidebar />
 
   <main class="content">
     <header class="topbar">

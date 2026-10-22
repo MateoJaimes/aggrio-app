@@ -1,3 +1,4 @@
+import { AdminSidebar } from '../../admin-sidebar';
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
@@ -10,7 +11,7 @@ import { LoteAdminService } from '../services/lote-admin.service';
 @Component({
   selector: 'app-lot-list',
   standalone: true,
-  imports: [CommonModule, DatePipe, RouterLink],
+  imports: [AdminSidebar, CommonModule, DatePipe, RouterLink],
   templateUrl: './lot-list.html',
   styleUrls: ['./lots-shell.scss', './lot-list.scss'],
 })

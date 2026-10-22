@@ -1,3 +1,4 @@
+import { AdminSidebar } from '../../admin-sidebar';
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -18,7 +19,7 @@ import { LecturaIotAdminService } from '../services/lectura-iot-admin.service';
 @Component({
   selector: 'app-iot-reading-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [AdminSidebar, CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './iot-reading-form.html',
   styleUrls: ['../../lots/pages/lots-shell.scss', '../../lots/pages/lot-form.scss', './iot-reading-form.scss'],
 })

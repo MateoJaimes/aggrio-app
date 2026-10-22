@@ -1,3 +1,4 @@
+import { AdminSidebar } from '../../admin-sidebar';
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
@@ -10,7 +11,7 @@ import { LecturaIotAdminService } from '../services/lectura-iot-admin.service';
 @Component({
   selector: 'app-iot-reading-list',
   standalone: true,
-  imports: [CommonModule, DatePipe, RouterLink],
+  imports: [AdminSidebar, CommonModule, DatePipe, RouterLink],
   templateUrl: './iot-reading-list.html',
   styleUrls: ['../../lots/pages/lots-shell.scss', '../../lots/pages/lot-list.scss', './iot-reading-list.scss'],
 })

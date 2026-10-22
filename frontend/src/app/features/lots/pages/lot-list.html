@@ -1,27 +1,5 @@
 <section class="page-shell">
-  <aside class="sidebar">
-    <div class="brand">
-      <span class="brand-mark">A</span>
-      <div><small>Panel</small><strong>Aggrio</strong></div>
-    </div>
-
-    <nav class="nav">
-      <a class="nav-item" [routerLink]="['/estates']"><span>🏡</span>Fincas</a>
-      <a class="nav-item active" [routerLink]="['/lots']"><span>🌱</span>Lotes</a>
-      <a class="nav-item" [routerLink]="['/activities']"><span>📋</span>Actividades</a>
-      <a class="nav-item" [routerLink]="['/iot']"><span>📡</span>Lecturas IoT</a>
-      <a class="nav-item" [routerLink]="['/multimedia']"><span>🖼️</span>Archivos Multimedia</a>
-      <a class="nav-item" [routerLink]="['/access-requests']"><span>📥</span>Solicitudes de acceso</a>
-      <a class="nav-item" [routerLink]="['/lots/new']"><span>➕</span>Nuevo lote</a>
-    </nav>
-
-    <div class="sidebar-card">
-      <p>Resumen de lotes</p>
-      <div class="mini-stat"><span>Total</span><strong>{{ lotes().length }}</strong></div>
-      <div class="mini-stat"><span>Disponibles</span><strong>{{ countByEstado('disponible') }}</strong></div>
-      <div class="mini-stat"><span>En uso</span><strong>{{ countByEstado('en_uso') }}</strong></div>
-    </div>
-  </aside>
+  <app-admin-sidebar />
 
   <main class="content">
     <div class="topbar">

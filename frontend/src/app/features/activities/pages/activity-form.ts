@@ -1,3 +1,4 @@
+import { AdminSidebar } from '../../admin-sidebar';
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -12,7 +13,7 @@ import { ActividadAdminService } from '../services/actividad-admin.service';
 @Component({
   selector: 'app-activity-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [AdminSidebar, CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './activity-form.html',
   styleUrls: ['../../lots/pages/lots-shell.scss', '../../lots/pages/lot-form.scss', './activity-form.scss'],
 })

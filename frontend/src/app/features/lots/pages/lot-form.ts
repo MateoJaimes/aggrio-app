@@ -1,3 +1,4 @@
+import { AdminSidebar } from '../../admin-sidebar';
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -12,7 +13,7 @@ import { LoteAdminService } from '../services/lote-admin.service';
 @Component({
   selector: 'app-lot-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [AdminSidebar, CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './lot-form.html',
   styleUrls: ['./lots-shell.scss', './lot-form.scss'],
 })

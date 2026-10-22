@@ -1,3 +1,4 @@
+import { AdminSidebar } from '../../admin-sidebar';
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
@@ -8,7 +9,7 @@ import { ActividadAdminService } from '../services/actividad-admin.service';
 @Component({
   selector: 'app-activity-list',
   standalone: true,
-  imports: [CommonModule, DatePipe, RouterLink],
+  imports: [AdminSidebar, CommonModule, DatePipe, RouterLink],
   templateUrl: './activity-list.html',
   styleUrls: ['../../lots/pages/lots-shell.scss', '../../lots/pages/lot-list.scss', './activity-list.scss'],
 })

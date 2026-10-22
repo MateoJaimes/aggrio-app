@@ -37,15 +37,12 @@ import { AuthService } from './auth.service';
           {{ isBusy() ? 'Cerrando…' : 'Cerrar sesión' }}
         </button>
 
-        <button type="button" class="logout-all" (click)="logoutAll()" [disabled]="isBusy()">
-          Cerrar en todos los dispositivos
-        </button>
       </div>
     }
   `,
   styles: [
     `
-      :host { display: block; margin-top: 1rem; }
+      :host { display: block; flex: 0 0 auto; min-width: 0; margin-top: auto; }
       .session { display: grid; gap: .55rem; padding: .9rem; border: 1px solid #ffffff1f; border-radius: 1rem; background: #ffffff0d; }
       .identity { display: flex; gap: .6rem; align-items: center; min-width: 0; }
       .avatar { display: grid; flex: none; width: 2rem; height: 2rem; place-items: center; border-radius: 50%; background: #2563eb; color: #fff; font-size: .78rem; font-weight: 700; }
@@ -58,8 +55,6 @@ import { AuthService } from './auth.service';
       button:disabled { cursor: wait; opacity: .55; }
       .logout { padding: .6rem .7rem; background: #ffffff17; color: #fff; font-size: .82rem; font-weight: 700; }
       .logout:hover:not(:disabled) { background: #ffffff2b; }
-      .logout-all { padding: .35rem; background: none; color: #ffffff8f; font-size: .72rem; }
-      .logout-all:hover:not(:disabled) { color: #fecaca; text-decoration: underline; }
       button:focus-visible { outline: 2px solid #bfdbfe; outline-offset: 2px; }
     `,
   ],

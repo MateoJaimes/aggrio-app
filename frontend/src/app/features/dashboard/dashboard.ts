@@ -1,11 +1,10 @@
+import { AdminSidebar } from '../admin-sidebar';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { SessionMenu } from '../../core/auth/session-menu';
 import { DashboardData, DashboardService } from './dashboard.service';
 
 @Component({
-  selector: 'app-dashboard', standalone: true, imports: [CommonModule, RouterLink, SessionMenu, DecimalPipe, DatePipe],
+  selector: 'app-dashboard', standalone: true, imports: [AdminSidebar, CommonModule, DecimalPipe, DatePipe],
   templateUrl: './dashboard.html', styleUrl: './dashboard.scss',
 })
 export class Dashboard implements OnInit {

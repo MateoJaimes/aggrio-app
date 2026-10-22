@@ -1,7 +1,20 @@
-/* Tipografía global: redondeada y legible, con alternativas disponibles localmente. */
+/* Base visual compartida por todas las pantallas. */
+:root {
+  --aggrio-page-background: linear-gradient(135deg, #eef4ff 0%, #f8fafc 38%, #edf6ff 100%);
+  --aggrio-sidebar-background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  --aggrio-primary: #2563eb;
+  --aggrio-primary-dark: #1d4ed8;
+  --aggrio-ink: #0f172a;
+  --aggrio-muted: #64748b;
+  --aggrio-border: #dbe4f0;
+  --aggrio-surface: #fff;
+  --aggrio-card-radius: 1rem;
+  --aggrio-card-shadow: 0 12px 30px rgba(15, 23, 42, .08);
+}
+
 html {
   font-family: "Nunito", "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
-  color: #0f172a;
+  color: var(--aggrio-ink);
 }
 
 body {
@@ -14,4 +27,165 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, .35);
+  outline-offset: 2px;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --aggrio-page-background: linear-gradient(135deg, #0b1220 0%, #111827 48%, #101b2e 100%);
+  --aggrio-sidebar-background: linear-gradient(180deg, #080e19 0%, #111827 100%);
+  --aggrio-primary: #3b82f6;
+  --aggrio-primary-dark: #2563eb;
+  --aggrio-ink: #e5e7eb;
+  --aggrio-muted: #9ca3af;
+  --aggrio-border: #334155;
+  --aggrio-surface: #172033;
+  --aggrio-card-shadow: 0 12px 30px rgba(0, 0, 0, .24);
+}
+
+html[data-theme='dark'] body {
+  color: var(--aggrio-ink);
+  background: #0b1220;
+}
+
+html[data-theme='dark'] :is(
+  app-dashboard,
+  app-access-request-list,
+  app-multimedia-gallery,
+  app-activity-list,
+  app-activity-form,
+  app-lot-list,
+  app-lot-form,
+  app-iot-reading-list,
+  app-iot-reading-form,
+  app-estate-list,
+  app-estate-form,
+  app-login,
+  app-two-factor,
+  app-reset-password,
+  app-forgot-password
+) {
+  color: var(--aggrio-ink);
+  background: var(--aggrio-page-background);
+}
+
+html[data-theme='dark'] :is(.content, .page-shell, .topbar, .charts) {
+  color: var(--aggrio-ink);
+}
+
+html[data-theme='dark'] :is(
+  .panel,
+  .kpis article,
+  .table-panel,
+  .form-card,
+  .loading-card,
+  .auth-card,
+  .stat-card,
+  .evidence-card,
+  .modal,
+  .detail-grid div
+) {
+  color: var(--aggrio-ink);
+  border-color: var(--aggrio-border);
+  background: var(--aggrio-surface);
+  box-shadow: var(--aggrio-card-shadow);
+}
+
+html[data-theme='dark'] :is(.table-header, .panel-header, .card-heading, th) {
+  color: var(--aggrio-ink);
+  border-color: var(--aggrio-border);
+  background: #1d293d;
+}
+
+html[data-theme='dark'] :is(
+  .content h1,
+  .content h2,
+  .content h3,
+  .panel h2,
+  .table-header h2,
+  .panel-header h2,
+  .card-heading h2,
+  .stat-card strong,
+  .detail-grid strong,
+  .metadata-row strong,
+  .card-content h3,
+  td,
+  th
+) {
+  color: var(--aggrio-ink);
+}
+
+html[data-theme='dark'] :is(
+  .subtitle,
+  .hint,
+  .topbar p,
+  .table-header p,
+  .panel-header p,
+  .stat-card span,
+  .field > span,
+  .field label,
+  .context,
+  .card-meta,
+  .loading,
+  td small,
+  .metadata-row span
+) {
+  color: var(--aggrio-muted);
+}
+
+html[data-theme='dark'] :is(
+  .field input,
+  .field select,
+  .field textarea,
+  .filters input,
+  .filters select,
+  .search input,
+  .metadata-form select,
+  .metadata-form textarea
+) {
+  color: var(--aggrio-ink);
+  border-color: var(--aggrio-border);
+  background: #0f172a;
+}
+
+html[data-theme='dark'] input::placeholder,
+html[data-theme='dark'] textarea::placeholder {
+  color: #94a3b8;
+}
+
+html[data-theme='dark'] :is(.secondary, .button.secondary, .close) {
+  color: var(--aggrio-ink);
+  border-color: var(--aggrio-border);
+  background: #263449;
+}
+
+html[data-theme='dark'] :is(.empty, .notice, .state, .preview-pane, .media-preview, .qr-panel) {
+  color: var(--aggrio-muted);
+  border-color: var(--aggrio-border);
+  background: #1d293d;
+}
+
+html[data-theme='dark'] :is(th, td, .table-header, .panel-header, .detail-grid div, .metadata-row) {
+  border-color: var(--aggrio-border);
+}
+
+html[data-theme='dark'] tbody tr:hover {
+  background: rgba(96, 165, 250, .08);
+}
+
+html[data-theme='dark'] .open-file {
+  color: #bfdbfe;
+  background: #1e3a5f;
 }

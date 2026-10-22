@@ -1,14 +1,5 @@
 <section class="page-shell">
-  <aside class="sidebar">
-    <div class="brand"><span class="brand-mark">A</span><div><small>Panel</small><strong>Aggrio</strong></div></div>
-    <nav class="nav">
-      <a class="nav-item active" routerLink="/dashboard">📊 Dashboard ejecutivo</a>
-      <a class="nav-item" routerLink="/estates">🏡 Fincas</a><a class="nav-item" routerLink="/lots">🌱 Lotes</a>
-      <a class="nav-item" routerLink="/activities">📋 Actividades</a><a class="nav-item" routerLink="/iot">📡 Lecturas IoT</a>
-      <a class="nav-item" routerLink="/multimedia">🖼️ Archivos Multimedia</a><a class="nav-item" routerLink="/access-requests">📥 Solicitudes de acceso</a>
-    </nav>
-    <app-session-menu />
-  </aside>
+  <app-admin-sidebar />
   <main class="content">
     <header class="topbar"><div><p class="eyebrow">Vista global</p><h1>Dashboard ejecutivo</h1><p>Indicadores consolidados de fincas, producción, actividades y lecturas IoT.</p></div><button class="refresh" (click)="load()" [disabled]="loading()">Actualizar</button></header>
     @if (loading()) { <p class="notice">Cargando datos del sistema…</p> }
