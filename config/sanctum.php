@@ -29,7 +29,9 @@ return [
     |
     */
 
-    'guard' => ['web'],
+    // Vacío a propósito (RF006): la API se autentica sólo por token Bearer, nunca
+    // por la sesión web. Ver la sección "Cómo se conectan Angular y Laravel" del README.
+    'guard' => [],
 
     /*
     |--------------------------------------------------------------------------

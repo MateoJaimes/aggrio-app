@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Lote;
+use App\Models\DispositivoIot;
 use App\Models\LecturaIot;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
 
 class LecturaIotApiController extends Controller
 {
@@ -16,6 +18,10 @@ class LecturaIotApiController extends Controller
         'radiacion_solar',
         'humedad_ambiente',
     ];
+
+    // La columna valor es decimal(8,2): fuera de este rango PostgreSQL rechaza
+    // el insert y la API respondería 500 en lugar de 422.
+    private const REGLA_VALOR = 'required|numeric|between:-999999.99,999999.99';
 
     /**
      * Listar globalmente las lecturas IoT para el panel Superadmin.
@@ -136,25 +142,42 @@ class LecturaIotApiController extends Controller
 
     /**
      * 1. ENDPOINT PARA EL SENSOR (POST): El dispositivo físico inyecta datos aquí.
+     *
+     * Con X-Device-Key válida (middleware iot.device) la lectura va al lote del
+     * dispositivo registrado y se ignora el lote_id del cuerpo (RF002). Sin key,
+     * mientras la transición lo permita, se usa el lote_id enviado.
      */
     public function store(Request $request): JsonResponse
     {
+        /** @var DispositivoIot|null $dispositivo */
+        $dispositivo = $request->attributes->get('dispositivo_iot');
+
         // Validación estricta de los datos del sensor
-        $request->validate([
-            'lote_id'         => 'required|integer|exists:lotes,id',
+        $datos = $request->validate([
+            'lote_id'         => [$dispositivo ? 'nullable' : 'required', 'integer'],
             'mac_dispositivo' => 'nullable|string|max:50',
-            'tipo_medicion'   => 'required|string|in:temperatura,humedad_suelo,radiacion_solar,humedad_ambiente',
-            'valor'           => 'required|numeric',
+            'tipo_medicion'   => 'required|string|in:' . implode(',', self::TIPOS_MEDICION),
+            'valor'           => self::REGLA_VALOR,
             'unidad'          => 'required|string|max:10'
         ]);
 
+        $loteId = $dispositivo?->lote_id ?? (int) $datos['lote_id'];
+
+        // Sólo se aceptan lecturas de lotes de fincas aprobadas. El mismo mensaje
+        // para "no existe" y "no aprobada" evita que sirva para descubrir IDs.
+        if (! $this->esLoteDeFincaAprobada($loteId)) {
+            throw ValidationException::withMessages([
+                'lote_id' => 'El lote no existe o su finca no está aprobada.',
+            ]);
+        }
+
         // Guardar la lectura en el Data Warehouse
         $lectura = LecturaIot::create([
-            'lote_id'         => $request->lote_id,
-            'mac_dispositivo' => $request->mac_dispositivo,
-            'tipo_medicion'   => $request->tipo_medicion,
-            'valor'           => $request->valor,
-            'unidad'          => $request->unidad,
+            'lote_id'         => $loteId,
+            'mac_dispositivo' => $dispositivo?->mac_dispositivo ?? $datos['mac_dispositivo'] ?? null,
+            'tipo_medicion'   => $datos['tipo_medicion'],
+            'valor'           => $datos['valor'],
+            'unidad'          => $datos['unidad'],
             'fecha_medicion'  => now() // Marca de tiempo exacta del servidor
         ]);
 
@@ -198,10 +221,17 @@ class LecturaIotApiController extends Controller
             'lote_id' => 'required|integer|exists:lotes,id',
             'mac_dispositivo' => 'nullable|string|max:50',
             'tipo_medicion' => 'required|in:' . implode(',', self::TIPOS_MEDICION),
-            'valor' => 'required|numeric',
+            'valor' => self::REGLA_VALOR,
             'unidad' => 'required|string|max:10',
             'fecha_medicion' => 'required|date',
         ]);
+    }
+
+    private function esLoteDeFincaAprobada(int $loteId): bool
+    {
+        return Lote::whereKey($loteId)
+            ->whereHas('finca', fn ($query) => $query->where('estado', 'aprobado'))
+            ->exists();
     }
 
     private function isSuperAdmin(Request $request): bool

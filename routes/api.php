@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\LoteApiController;
 use App\Http\Controllers\Api\ActividadApiController;
 use App\Http\Controllers\Api\MultimediaApiController;
 use App\Http\Controllers\Api\LecturaIotApiController;
+use App\Http\Controllers\Api\DispositivoIotApiController;
 use App\Http\Controllers\Api\PresignedUrlController;
 use App\Http\Controllers\Api\AccessRequestApiController;
 use App\Http\Controllers\Api\PasswordResetController;
@@ -33,8 +34,10 @@ Route::post('/password/reset', [PasswordResetController::class, 'reset']);
 Route::middleware(['auth:sanctum', 'abilities:token:refresh'])
     ->post('/auth/refresh', [AuthApiController::class, 'refresh']);
 
-// RUTA PARA EL SENSOR (POST): El hardware envía los datos aquí de forma directa
-Route::post('/iot/lecturas', [LecturaIotApiController::class, 'store']);
+// RUTA PARA EL SENSOR (POST): El hardware envía los datos aquí de forma directa.
+// No usa Sanctum: el sensor se identifica con su X-Device-Key (RF002).
+Route::middleware(['throttle:iot', 'iot.device'])
+    ->post('/iot/lecturas', [LecturaIotApiController::class, 'store']);
 
 // RUTAS PROTEGIDAS (Requieren Token Bearer)
 // Todo lo que esté dentro de este grupo exige que Flutter envíe un token válido.
@@ -83,6 +86,14 @@ Route::middleware(['auth:sanctum', 'abilities:api:access'])->group(function () {
     Route::get('/admin/lecturas-iot/{id}', [LecturaIotApiController::class, 'showAdmin']);
     Route::put('/admin/lecturas-iot/{id}', [LecturaIotApiController::class, 'updateAdmin']);
     Route::delete('/admin/lecturas-iot/{id}', [LecturaIotApiController::class, 'destroyAdmin']);
+
+    // -- Módulo Superadmin: Dispositivos IoT y sus API keys (Panel Angular / RF002) --
+    Route::get('/admin/dispositivos-iot', [DispositivoIotApiController::class, 'indexAdmin']);
+    Route::post('/admin/dispositivos-iot', [DispositivoIotApiController::class, 'storeAdmin']);
+    Route::get('/admin/dispositivos-iot/{id}', [DispositivoIotApiController::class, 'showAdmin']);
+    Route::put('/admin/dispositivos-iot/{id}', [DispositivoIotApiController::class, 'updateAdmin']);
+    Route::post('/admin/dispositivos-iot/{id}/regenerar-key', [DispositivoIotApiController::class, 'regenerarKeyAdmin']);
+    Route::delete('/admin/dispositivos-iot/{id}', [DispositivoIotApiController::class, 'destroyAdmin']);
 
     // -- Módulo Superadmin: Evidencia multimedia (Panel Angular / SA-HU004 RF004) --
     Route::get('/admin/archivos-multimedia', [MultimediaApiController::class, 'indexAdmin']);
