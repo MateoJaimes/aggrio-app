@@ -1,10 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { requiresTwoFactor } from '../../../core/auth/auth.models';
+import { environment } from '../../../../environments/environment';
 import { errorMessage } from '../error-message';
 
 @Component({
@@ -15,12 +17,14 @@ import { errorMessage } from '../error-message';
   styleUrl: './auth-shell.scss',
 })
 export class Login {
+  private readonly title = inject(Title);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
   readonly email = signal('');
   readonly password = signal('');
+  readonly publicSiteUrl = environment.publicSiteUrl || window.location.origin;
   readonly showPassword = signal(false);
   readonly isLoading = signal(false);
   readonly error = signal('');
@@ -29,6 +33,10 @@ export class Login {
       ? 'Tu sesión expiró. Vuelve a iniciar sesión.'
       : '',
   );
+
+  constructor() {
+    this.title.setTitle('Aggrio | Login');
+  }
 
   togglePassword(): void {
     this.showPassword.update((value) => !value);

@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { Title } from '@angular/platform-browser';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
 import { SessionMenu } from '../core/auth/session-menu';
@@ -95,5 +96,10 @@ import { ThemeService } from '../core/theme/theme.service';
   `],
 })
 export class AdminSidebar {
+  private readonly title = inject(Title);
   readonly theme = inject(ThemeService);
+
+  constructor() {
+    this.title.setTitle('Aggrio | Panel administrativo');
+  }
 }

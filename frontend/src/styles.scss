@@ -8,6 +8,8 @@
   --aggrio-muted: #64748b;
   --aggrio-border: #dbe4f0;
   --aggrio-surface: #fff;
+  --aggrio-control-background: #f5f8fc;
+  --aggrio-control-option-background: #fff;
   --aggrio-card-radius: 1rem;
   --aggrio-card-shadow: 0 12px 30px rgba(15, 23, 42, .08);
 }
@@ -52,7 +54,29 @@ html[data-theme='dark'] {
   --aggrio-muted: #9ca3af;
   --aggrio-border: #334155;
   --aggrio-surface: #172033;
+  --aggrio-control-background: #111b2b;
+  --aggrio-control-option-background: #172033;
   --aggrio-card-shadow: 0 12px 30px rgba(0, 0, 0, .24);
+}
+
+/* Keep form controls and native dropdown choices coordinated with the active theme. */
+html :is(
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+  select,
+  textarea
+) {
+  color: var(--aggrio-ink);
+  border-color: var(--aggrio-border);
+  background-color: var(--aggrio-control-background) !important;
+}
+
+html option {
+  color: var(--aggrio-ink);
+  background-color: var(--aggrio-control-option-background);
+}
+
+html :is(input, textarea)::placeholder {
+  color: var(--aggrio-muted);
 }
 
 html[data-theme='dark'] body {

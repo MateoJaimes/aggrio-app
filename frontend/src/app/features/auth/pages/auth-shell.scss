@@ -21,8 +21,11 @@ h1 { margin: .3rem 0 0; font-size: 1.65rem; letter-spacing: -.03em; }
 .field-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
 
 .password-wrap { position: relative; }
-.password-wrap input { padding-right: 4.2rem; }
-.peek { position: absolute; top: 50%; right: .5rem; transform: translateY(-50%); padding: .35rem .55rem; border: 0; border-radius: .5rem; background: #eff6ff; color: #1e3a8a; font: inherit; font-size: .74rem; font-weight: 700; cursor: pointer; }
+.password-wrap input { padding-right: 3rem; }
+.peek { position: absolute; top: 50%; right: .5rem; display: grid; width: 2rem; height: 2rem; place-items: center; transform: translateY(-50%); padding: 0; border: 0; border-radius: .5rem; background: transparent; color: #64748b; cursor: pointer; }
+.peek:hover { background: #eff6ff; color: #1e3a8a; }
+.peek:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.peek svg { width: 1.2rem; height: 1.2rem; }
 
 .code-input { font-size: 1.5rem; font-variant-numeric: tabular-nums; letter-spacing: .5rem; text-align: center; }
 
@@ -34,6 +37,9 @@ h1 { margin: .3rem 0 0; font-size: 1.65rem; letter-spacing: -.03em; }
 .linkish { display: inline-block; border: 0; padding: 0; background: none; color: #2563eb; font: inherit; font-size: .82rem; font-weight: 600; text-decoration: none; cursor: pointer; }
 .linkish:hover { text-decoration: underline; }
 .foot { margin-top: 1.25rem; text-align: center; }
+.home-link { margin: .7rem 0 0; text-align: center; }
+.home-link a { color: #64748b; font-size: .82rem; text-decoration: none; }
+.home-link a:hover { color: #2563eb; text-decoration: underline; }
 
 .alert { margin-bottom: 1rem; padding: .85rem 1rem; border: 1px solid; border-radius: .75rem; font-size: .88rem; }
 .alert.error { color: #991b1b; background: #fef2f2; border-color: #fecaca; }

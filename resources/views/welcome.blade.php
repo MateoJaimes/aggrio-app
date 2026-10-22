@@ -3,163 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Fincas y Terrenos | Premium</title>
-    <meta name="description" content="Plataforma profesional para la gestión avanzada de fincas, terrenos y recursos agrícolas.">
-    <!-- Google Fonts -->
+    <meta name="theme-color" content="#f4f7fc">
+    <title>Aggrio</title>
+    <meta name="description" content="Administra fincas, lotes, actividades y lecturas de campo desde una plataforma clara y centralizada.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Custom Styles -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 </head>
 <body>
-
-    <!-- Header -->
-    {{-- <header id="navbar">
-        <a href="{{ url('/') }}" class="logo">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2 22 22 2 M22 22 2 2" opacity="0.2"/>
-                <path d="M12 2L2 22h20L12 2z"/>
-                <path d="M12 22V10"/>
-                <path d="M6 16h12"/>
-            </svg>
-            Agro<span>Tech</span>
-        </a>
-    </header> --}}
-    <header id="navbar" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 5%; transition: all 0.3s ease;">
-        <a href="{{ url('/') }}" class="logo">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2 22 22 2 M22 22 2 2" opacity="0.2"/>
-                <path d="M12 2L2 22h20L12 2z"/>
-                <path d="M12 22V10"/>
-                <path d="M6 16h12"/>
-            </svg>
-            Agro<span>Tech</span>
+    <header class="site-header" id="navbar">
+        <a href="{{ url('/') }}" class="brand" aria-label="Aggrio, página principal">
+            <span class="brand-mark" aria-hidden="true">A</span>
+            <span class="brand-name">Aggrio</span>
         </a>
 
-        <a href="{{ rtrim(config('app.frontend_url'), '/') }}/auth/login" class="btn btn-outline" style="display: flex; align-items: center; gap: 0.5rem; border-radius: 50px; padding: 0.5rem 1.25rem;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-            Ingresar
-        </a>
+        <nav class="header-actions" aria-label="Navegación principal">
+            <a class="nav-link" href="#features">Plataforma</a>
+            <a class="button button-outline" href="{{ rtrim(config('app.frontend_url'), '/') }}/auth/login">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5m5 5H3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Iniciar sesión
+            </a>
+        </nav>
     </header>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-content">
-            <h1>Gestión Inteligente de <br>Fincas y Terrenos</h1>
-            <p>Optimice sus recursos, monitorice el estado de sus tierras en tiempo real y tome decisiones basadas en datos para maximizar el rendimiento agrícola.</p>
-            <div class="hero-buttons">
-                <a href="{{ rtrim(config('app.frontend_url'), '/') }}/auth/login" class="btn btn-primary">Solicitar Acceso</a>
-                <a href="#features" class="btn btn-outline">Explorar Plataforma</a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Features Section -->
-    <section id="features" class="features">
-        <div class="section-title">
-            <h2>Capacidades Avanzadas</h2>
-            <p style="margin: 0 auto;">Todo lo que necesita para el control integral de su explotación agraria.</p>
-        </div>
-        
-        <div class="grid">
-            <div class="card">
-                <div class="card-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-9 5 18 3-9h5"/></svg>
+    <main>
+        <section class="hero">
+            <div class="hero-image" role="img" aria-label="Cultivo agrícola al amanecer"></div>
+            <div class="hero-shade"></div>
+            <div class="hero-content">
+                <p class="eyebrow"><span></span> Gestión agrícola en un solo lugar</p>
+                <h1>Tu finca, más clara.<br><span>Tu gestión, más simple.</span></h1>
+                <p class="hero-copy">Organiza tus fincas, lotes y actividades; consulta las lecturas del campo y toma decisiones con información centralizada.</p>
+                <div class="hero-actions">
+                    <a class="button button-primary" href="{{ rtrim(config('app.frontend_url'), '/') }}/auth/login">Entrar a Aggrio <span aria-hidden="true">→</span></a>
+                    <a class="button button-glass" href="#features">Conocer la plataforma</a>
                 </div>
-                <h3>Monitorización en Tiempo Real</h3>
-                <p>Controle sensores de humedad, temperatura y nutrientes desde un único panel de control interactivo.</p>
+                <div class="hero-note"><span class="status-dot"></span> Información organizada para el trabajo diario en el campo</div>
             </div>
-            
-            <div class="card">
-                <div class="card-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
-                </div>
-                <h3>Gestión Catastral</h3>
-                <p>Administre lindes, parcelas y documentación legal de todos sus terrenos de forma unificada y segura.</p>
-            </div>
-            
-            <div class="card">
-                <div class="card-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                </div>
-                <h3>Optimización de Recursos</h3>
-                <p>Reduzca costes de agua y fertilizantes mediante algoritmos predictivos basados en IA.</p>
-            </div>
-        </div>
-    </section>
+            <div class="hero-mark" aria-hidden="true"><span>AG</span><small>GESTIÓN AGRÍCOLA</small></div>
+        </section>
 
-    <!-- Benefits Section -->
-    <section class="benefits-section" style="padding: 8rem 5%; display: flex; gap: 4rem; align-items: center; background: white; flex-wrap: wrap;">
-        <div style="flex: 1; min-width: 300px;">
-            <img src="https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=800&q=80" alt="Beneficios del cultivo" style="width: 100%; border-radius: 2rem; box-shadow: 0 20px 40px rgba(0,0,0,0.1);">
-        </div>
-        <div style="flex: 1; min-width: 300px;">
-            <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem; color: var(--text-main);">Beneficios de Nuestro Servicio de Monitoreo</h2>
-            <p style="font-size: 1.125rem; color: var(--text-muted); margin-bottom: 1.5rem;">Implementar un sistema de monitoreo avanzado en su campo le permite maximizar el rendimiento de sus cultivos reduciendo el desperdicio de recursos.</p>
-            <ul style="list-style: none; padding: 0;">
-                <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    <span>Reducción de costos operativos hasta en un 30%</span>
-                </li>
-                <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    <span>Prevención de plagas mediante alertas tempranas</span>
-                </li>
-                <li style="margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    <span>Optimización del uso de fertilizantes y agua</span>
-                </li>
-            </ul>
-        </div>
-    </section>
+        <section class="features section" id="features">
+            <div class="section-heading">
+                <p class="eyebrow">Una plataforma conectada</p>
+                <h2>Todo lo que necesitas para<br><span>gestionar mejor tu operación</span></h2>
+                <p>Consulta la información clave de tus terrenos y mantén las tareas organizadas desde un mismo panel.</p>
+            </div>
 
-    <!-- Footer -->
-    <footer style="background: var(--text-main); color: white; padding: 4rem 5% 2rem;">
-        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2rem; margin-bottom: 3rem;">
-            <div style="max-width: 300px;">
-                <a href="#" style="color: white; font-size: 1.5rem; font-weight: 800; text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M2 22 22 2 M22 22 2 2" opacity="0.2"/>
-                        <path d="M12 2L2 22h20L12 2z"/>
-                        <path d="M12 22V10"/>
-                        <path d="M6 16h12"/>
-                    </svg>
-                    Agro<span style="color: var(--primary);">Tech</span>
+            <div class="feature-grid">
+                <article class="feature-card">
+                    <span class="feature-icon icon-blue" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18M19 9l-5 5-4-4-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <h3>Lecturas del campo</h3>
+                    <p>Revisa las mediciones recibidas y consulta su evolución para mantenerte al tanto de las condiciones de tus lotes.</p>
+                </article>
+                <article class="feature-card">
+                    <span class="feature-icon icon-green" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m3 10 9-7 9 7M5 9v11h14V9M9 20v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <h3>Fincas y lotes</h3>
+                    <p>Mantén la información de tus propiedades y parcelas organizada y fácil de consultar.</p>
+                </article>
+                <article class="feature-card">
+                    <span class="feature-icon icon-violet" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M8 4H6a2 2 0 0 0-2 2v14h16V6a2 2 0 0 0-2-2h-2M9 3h6v4H9zM8 13h8M8 17h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <h3>Actividades y evidencias</h3>
+                    <p>Registra labores, consulta su historial y reúne archivos relacionados con el trabajo realizado.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="benefits section">
+            <div class="benefits-visual">
+                <img src="https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=1100&q=85" alt="Cultivo verde en una finca">
+                <div class="visual-caption"><span class="caption-mark">A</span><span><strong>Aggrio</strong><small>Gestión para el campo</small></span></div>
+            </div>
+            <div class="benefits-copy">
+                <p class="eyebrow">Información que acompaña tu trabajo</p>
+                <h2>Una vista más ordenada de tu operación</h2>
+                <p class="benefits-intro">Centraliza los datos de tus fincas y consulta lo que necesitas para planear y dar seguimiento a las actividades.</p>
+                <ul class="benefit-list">
+                    <li><span class="check" aria-hidden="true">✓</span><span>Consulta fincas, lotes y actividades desde el mismo panel.</span></li>
+                    <li><span class="check" aria-hidden="true">✓</span><span>Da seguimiento a lecturas y dispositivos IoT.</span></li>
+                    <li><span class="check" aria-hidden="true">✓</span><span>Conserva archivos y evidencias asociados al trabajo de campo.</span></li>
+                </ul>
+                <a class="text-link" href="{{ rtrim(config('app.frontend_url'), '/') }}/auth/login">Acceder a la plataforma <span aria-hidden="true">→</span></a>
+            </div>
+        </section>
+
+        <section class="closing-cta">
+            <div>
+                <p class="eyebrow">Aggrio</p>
+                <h2>Empieza con una gestión más organizada.</h2>
+                <p>Ingresa al panel para consultar la información de tu operación.</p>
+            </div>
+            <a class="button button-light" href="{{ rtrim(config('app.frontend_url'), '/') }}/auth/login">Ir al panel <span aria-hidden="true">→</span></a>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-main">
+            <div class="footer-about">
+                <a href="{{ url('/') }}" class="brand footer-brand" aria-label="Aggrio, página principal">
+                    <span class="brand-mark" aria-hidden="true">A</span>
+                    <span class="brand-name">Aggrio</span>
                 </a>
-                <p style="color: #cbd5e1; margin-top: 1rem;">Transformando el campo con tecnología de vanguardia y análisis predictivo para una agricultura sostenible.</p>
+                <p>Transformando el campo con tecnología de vanguardia y análisis predictivo para una agricultura sostenible.</p>
             </div>
-            <div>
-                <h3 style="color: white; margin-bottom: 1.5rem;">Contacto</h3>
-                <p style="color: #cbd5e1; margin-bottom: 0.5rem;">Email: contacto@agrotech.com</p>
-                <p style="color: #cbd5e1; margin-bottom: 0.5rem;">Teléfono: +57 300 123 4567</p>
-                <p style="color: #cbd5e1;">Dirección: Ocaña, Norte de Santander</p>
+            <div class="footer-contact">
+                <h2>Contacto</h2>
+                <p><span>Email:</span> <a href="mailto:contacto@agrotech.com">contacto@agrotech.com</a></p>
+                <p><span>Teléfono:</span> <a href="tel:+573001234567">+57 300 123 4567</a></p>
+                <p><span>Dirección:</span> Ocaña, Norte de Santander</p>
             </div>
-            <div>
-                <img src="https://ufpso.edu.co/media/contenido/identidad/logo_vertical_blanco.png" alt="UFPSO Logo" style="height: 140px; padding: 10px;">
+            <div class="footer-institution">
+                <img src="https://ufpso.edu.co/media/contenido/identidad/logo_vertical_blanco.png" alt="Universidad Francisco de Paula Santander Ocaña (UFPSO)">
             </div>
         </div>
-        <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 2rem; text-align: center; color: #94a3b8;">
-            &copy; UFPSO CIDIA 2026. Todos los derechos reservados.
+        <div class="footer-bottom">
+            <span>© UFPSO CIDIA 2026. Todos los derechos reservados.</span>
         </div>
     </footer>
 
     <script>
-        // Simple micro-animation for navbar on scroll
-        window.addEventListener('scroll', () => {
-            const header = document.getElementById('navbar');
-            if (window.scrollY > 50) {
-                header.style.padding = '0.5rem 5%';
-                header.style.background = 'rgba(255, 255, 255, 0.95)';
-            } else {
-                header.style.padding = '1rem 5%';
-                header.style.background = 'rgba(255, 255, 255, 0.85)';
-            }
-        });
+        const header = document.getElementById('navbar');
+        const updateHeader = () => header.classList.toggle('is-scrolled', window.scrollY > 12);
+        updateHeader();
+        window.addEventListener('scroll', updateHeader, { passive: true });
     </script>
 </body>
 </html>
-
