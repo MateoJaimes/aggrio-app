@@ -122,11 +122,32 @@
         </div>
     </footer>
 
+    <button class="scroll-guide" id="scroll-guide" type="button" aria-label="Desplazarse hacia abajo" title="Desplazarse hacia abajo">
+        <svg class="scroll-down-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v15m-7-7 7 7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg class="scroll-up-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 20V5m-7 7 7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
     <script>
         const header = document.getElementById('navbar');
-        const updateHeader = () => header.classList.toggle('is-scrolled', window.scrollY > 12);
-        updateHeader();
-        window.addEventListener('scroll', updateHeader, { passive: true });
+        const scrollGuide = document.getElementById('scroll-guide');
+        const updateScrollState = () => {
+            header.classList.toggle('is-scrolled', window.scrollY > 12);
+            scrollGuide.classList.toggle('is-scrolling', window.scrollY > 12);
+            const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 24;
+            scrollGuide.classList.toggle('is-at-bottom', atBottom);
+            const label = atBottom ? 'Volver al principio' : 'Desplazarse hacia abajo';
+            scrollGuide.setAttribute('aria-label', label);
+            scrollGuide.setAttribute('title', label);
+        };
+
+        scrollGuide.addEventListener('click', () => {
+            const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 24;
+            window.scrollTo({ top: atBottom ? 0 : Math.min(window.scrollY + window.innerHeight * 0.78, document.documentElement.scrollHeight), behavior: 'smooth' });
+        });
+
+        updateScrollState();
+        window.addEventListener('scroll', updateScrollState, { passive: true });
+        window.addEventListener('resize', updateScrollState, { passive: true });
     </script>
 </body>
 </html>

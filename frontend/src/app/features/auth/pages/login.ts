@@ -14,7 +14,7 @@ import { errorMessage } from '../error-message';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './login.html',
-  styleUrl: './auth-shell.scss',
+  styleUrls: ['./auth-shell.scss', './login.scss'],
 })
 export class Login {
   private readonly title = inject(Title);

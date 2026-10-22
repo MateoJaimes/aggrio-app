@@ -37,10 +37,6 @@ h1 { margin: .3rem 0 0; font-size: 1.65rem; letter-spacing: -.03em; }
 .linkish { display: inline-block; border: 0; padding: 0; background: none; color: #2563eb; font: inherit; font-size: .82rem; font-weight: 600; text-decoration: none; cursor: pointer; }
 .linkish:hover { text-decoration: underline; }
 .foot { margin-top: 1.25rem; text-align: center; }
-.home-link { margin: .7rem 0 0; text-align: center; }
-.home-link a { color: #64748b; font-size: .82rem; text-decoration: none; }
-.home-link a:hover { color: #2563eb; text-decoration: underline; }
-
 .alert { margin-bottom: 1rem; padding: .85rem 1rem; border: 1px solid; border-radius: .75rem; font-size: .88rem; }
 .alert.error { color: #991b1b; background: #fef2f2; border-color: #fecaca; }
 .alert.success { color: #166534; background: #f0fdf4; border-color: #bbf7d0; }

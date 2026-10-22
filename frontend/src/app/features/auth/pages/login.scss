@@ -1,0 +1,10 @@
+.login-shell { position: relative; isolation: isolate; overflow: hidden; background: #172b3e; }
+.login-shell::before { position: absolute; z-index: -1; inset: 0; background: linear-gradient(90deg, rgba(10, 22, 39, .78), rgba(10, 22, 39, .44)), url("https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&w=2000&q=88") center 52% / cover no-repeat; content: ""; transform: scale(1.02); }
+.login-shell .auth-card { border-color: rgba(255, 255, 255, .72); background: rgba(255, 255, 255, .94); box-shadow: 0 24px 70px rgba(3, 10, 22, .3); backdrop-filter: blur(16px); }
+.login-shell .brand-mark { background: linear-gradient(140deg, #60a5fa, #2563eb); box-shadow: 0 7px 15px rgba(37, 99, 235, .25); }
+:host-context(html[data-theme='dark']) .login-shell .auth-card { border-color: rgba(148, 163, 184, .32); background: rgba(15, 23, 42, .94); }
+
+.home-link { margin: .8rem 0 0; text-align: center; }
+.home-link a { display: inline-flex; align-items: center; justify-content: center; min-height: 2.5rem; padding: .45rem .8rem; border: 1px solid #bfdbfe; border-radius: .7rem; color: #1d4ed8; background: #eff6ff; font-size: .84rem; font-weight: 800; text-decoration: none; transition: background .18s ease, border-color .18s ease; }
+.home-link a::before { margin-right: .45rem; content: "←"; font-size: 1rem; line-height: 1; }
+.home-link a:hover { border-color: #93c5fd; background: #dbeafe; }
