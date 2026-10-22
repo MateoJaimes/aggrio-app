@@ -1,1 +1,17 @@
-/* You can add global styles to this file, and also import other style files */
+/* Tipografía global: redondeada y legible, con alternativas disponibles localmente. */
+html {
+  font-family: "Nunito", "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+  color: #0f172a;
+}
+
+body {
+  margin: 0;
+  font-family: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
