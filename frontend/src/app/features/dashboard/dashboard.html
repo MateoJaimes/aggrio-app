@@ -1,0 +1,55 @@
+<section class="page-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">A</span><div><small>Panel</small><strong>Aggrio</strong></div></div>
+    <nav class="nav">
+      <a class="nav-item active" routerLink="/dashboard">📊 Dashboard ejecutivo</a>
+      <a class="nav-item" routerLink="/estates">🏡 Fincas</a><a class="nav-item" routerLink="/lots">🌱 Lotes</a>
+      <a class="nav-item" routerLink="/activities">📋 Actividades</a><a class="nav-item" routerLink="/iot">📡 Lecturas IoT</a>
+      <a class="nav-item" routerLink="/multimedia">🖼️ Archivos Multimedia</a><a class="nav-item" routerLink="/access-requests">📥 Solicitudes de acceso</a>
+    </nav>
+    <app-session-menu />
+  </aside>
+  <main class="content">
+    <header class="topbar"><div><p class="eyebrow">Vista global</p><h1>Dashboard ejecutivo</h1><p>Indicadores consolidados de fincas, producción, actividades y lecturas IoT.</p></div><button class="refresh" (click)="load()" [disabled]="loading()">Actualizar</button></header>
+    @if (loading()) { <p class="notice">Cargando datos del sistema…</p> }
+    @if (error()) { <p class="notice error" role="alert">{{ error() }}</p> }
+    @if (data(); as d) {
+      <section class="kpis" aria-label="Indicadores globales">
+        <article><span>Total de fincas</span><strong>{{ d.kpis.fincas | number }}</strong></article>
+        <article><span>Lotes activos <small>(en uso)</small></span><strong>{{ d.kpis.lotes_activos | number }}</strong></article>
+        <article><span>Hectáreas cultivadas <small>(lotes en uso)</small></span><strong>{{ d.kpis.hectareas_cultivadas | number:'1.0-2' }} <small>ha</small></strong></article>
+        <article><span>Inversión total <small>(costos de actividades)</small></span><strong>{{ formatCurrency(d.kpis.inversion_total, d.metadata.moneda) }}</strong></article>
+        <article><span>Registros IoT</span><strong>{{ d.kpis.registros_iot | number }}</strong></article>
+        <article><span>Actividades registradas</span><strong>{{ d.kpis.actividades | number }}</strong></article>
+      </section>
+      <section class="charts" aria-label="Reportes globales">
+        <article class="panel"><h2>Estado de las fincas</h2><p class="hint">Distribución por los estados registrados.</p>
+          @for (row of d.estado_fincas; track row.estado) { <div class="bar-row"><span>{{ label(row.estado) }}</span><div class="track"><i [style.width.%]="row.total / max(d.estado_fincas.map(x => x.total)) * 100"></i></div><b>{{ row.total }}</b></div> } @empty { <p class="empty">Sin fincas registradas.</p> }
+        </article>
+        <article class="panel"><h2>Cultivos por hectárea</h2><p class="hint">Superficie de lotes en uso (ha).</p>
+          @for (row of d.cultivos_hectareas; track row.tipo_cultivo) { <div class="bar-row"><span>{{ row.tipo_cultivo }}</span><div class="track green"><i [style.width.%]="amount(row.hectareas) / max(d.cultivos_hectareas.map(x => x.hectareas)) * 100"></i></div><b>{{ row.hectareas | number:'1.0-2' }} ha</b></div> } @empty { <p class="empty">Sin lotes en uso.</p> }
+        </article>
+        <article class="panel"><h2>Inversión por actividad</h2><p class="hint">Suma de costos registrados en {{ d.metadata.moneda }}.</p>
+          @for (row of d.inversion_actividad; track row.tipo_actividad) { <div class="bar-row"><span>{{ label(row.tipo_actividad) }}</span><div class="track gold"><i [style.width.%]="amount(row.total) / max(d.inversion_actividad.map(x => x.total)) * 100"></i></div><b>{{ formatCurrency(row.total, d.metadata.moneda) }}</b></div> } @empty { <p class="empty">Sin costos registrados.</p> }
+        </article>
+        <article class="panel"><h2>Inversión mensual</h2><p class="hint">Costos por fecha de actividad, últimos 12 meses, en {{ d.metadata.moneda }}.</p>
+          @for (row of d.inversion_mensual; track row.periodo) { <div class="bar-row"><span>{{ row.periodo }}</span><div class="track gold"><i [style.width.%]="amount(row.total) / max(d.inversion_mensual.map(x => x.total)) * 100"></i></div><b>{{ formatCurrency(row.total, d.metadata.moneda) }}</b></div> } @empty { <p class="empty">Sin inversión en el periodo.</p> }
+        </article>
+        <article class="panel"><h2>Comportamiento de sensores · 7 días</h2><p class="hint">Promedios diarios por tipo y unidad; zona horaria: {{ d.metadata.zona_horaria }}. Se muestran solo días con lecturas.</p>
+          @for (row of d.sensores_siete_dias; track row.fecha + row.tipo_medicion + row.unidad) { <div class="bar-row"><span>{{ row.fecha }} · {{ label(row.tipo_medicion) }}</span><div class="track violet"><i [style.width.%]="absolute(row.promedio) / sensorScale(row.tipo_medicion, row.unidad, d.sensores_siete_dias) * 100"></i></div><b>{{ row.promedio | number:'1.0-2' }} {{ row.unidad }} <small>({{ row.lecturas }})</small></b></div> } @empty { <p class="empty">Sin mediciones en los últimos siete días.</p> }
+        </article>
+        <article class="panel"><h2>Vigencia del reporte de sensores</h2>
+          <p class="hint">Umbral: {{ d.estado_sensores.umbral_vigencia_minutos }} minutos · Reporte reciente: {{ d.estado_sensores.reporte_reciente }} · Sin reporte reciente: {{ d.estado_sensores.sin_reporte_reciente }}.</p>
+          <p class="limitation">La vigencia confirma que llegó una lectura dentro del umbral; no verifica que el sensor esté funcionando correctamente.</p>
+          <p class="hint">Dispositivos con MAC registrada: <strong>{{ d.estado_sensores.identificados }}</strong>. Última lectura conocida por dispositivo:</p>
+          @for (sensor of d.estado_sensores.ultima_lectura_por_dispositivo; track sensor.mac_dispositivo) {
+            <div class="sensor-row"><code>{{ sensor.mac_dispositivo }}</code><time>{{ sensor.ultima_lectura | date:'short':d.metadata.zona_horaria_offset }}</time>
+              @if (sensor.estado === 'reporte_reciente') { <span class="sensor-state recent">Reporte reciente</span> }
+              @if (sensor.estado === 'sin_reporte_reciente') { <span class="sensor-state stale">Sin reporte reciente</span> }
+            </div>
+          } @empty { <p class="empty">No hay dispositivos identificados en las lecturas.</p> }
+        </article>
+      </section>
+    }
+  </main>
+</section>

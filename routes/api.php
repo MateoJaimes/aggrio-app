@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\PresignedUrlController;
 use App\Http\Controllers\Api\AccessRequestApiController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\TwoFactorController;
+use App\Http\Controllers\Api\DashboardApiController;
 
 // RUTA PÚBLICA (No requiere Token)
 // Aquí es donde Flutter envía el correo y la contraseña para obtener acceso.
@@ -43,6 +44,9 @@ Route::middleware(['throttle:iot', 'iot.device'])
 // Todo lo que esté dentro de este grupo exige que Flutter envíe un token válido.
 // "abilities:api:access" impide que un refresh token se use como token normal.
 Route::middleware(['auth:sanctum', 'abilities:api:access'])->group(function () {
+
+    // Dashboard global (HU005): el controlador exige rol Superadmin.
+    Route::get('/admin/dashboard', [DashboardApiController::class, 'show']);
 
     // -- Módulo de Usuario y Sesión --
     Route::get('/me', [AuthApiController::class, 'me']);
