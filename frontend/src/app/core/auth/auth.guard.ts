@@ -26,7 +26,21 @@ export const adminGuard: CanActivateFn = (route, state) => {
     return authenticated;
   }
 
-  return auth.isSuperAdmin() ? true : router.createUrlTree(['/auth/login']);
+  return auth.isSuperAdmin() ? true : router.createUrlTree(['/account']);
+};
+
+/** Impide que el panel de productor reutilice pantallas o datos de Superadmin. */
+export const producerGuard: CanActivateFn = (route, state) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  const authenticated = authGuard(route, state);
+
+  if (authenticated !== true) {
+    return authenticated;
+  }
+
+  return auth.isProducer() ? true : router.createUrlTree(['/estates']);
 };
 
 /** Impide volver al login cuando ya hay sesión. */
@@ -34,7 +48,7 @@ export const guestGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  return auth.isAuthenticated() ? router.createUrlTree(['/estates']) : true;
+  return auth.isAuthenticated() ? router.createUrlTree([auth.defaultRoute()]) : true;
 };
 
 /** La pantalla de doble factor sólo tiene sentido con un reto pendiente. */

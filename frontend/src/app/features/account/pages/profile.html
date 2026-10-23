@@ -1,0 +1,64 @@
+<section class="page-shell">
+  <app-producer-sidebar />
+
+  <main class="content narrow">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Mi cuenta</p>
+        <h1>Datos personales</h1>
+        <p class="muted">Mantén actualizados los datos de tu cuenta.</p>
+      </div>
+    </header>
+
+    @if (error()) { <p class="alert error" role="alert">{{ error() }}</p> }
+    @if (notice()) { <p class="alert success">{{ notice() }}</p> }
+
+    <div class="profile-panels">
+      <form class="panel profile-form" [formGroup]="form" (ngSubmit)="save()">
+        <fieldset [disabled]="isLoading() || isSaving()">
+          <div class="form-grid">
+            <label>Nombres<input type="text" formControlName="firstname" autocomplete="given-name" /></label>
+            <label>Apellidos<input type="text" formControlName="lastname" autocomplete="family-name" /></label>
+            <label>Correo electrónico<input type="email" formControlName="email" autocomplete="email" /></label>
+            <label>Tipo de identificación
+              <select formControlName="idType" autocomplete="off">
+                <option value="CC">Cédula de ciudadanía</option>
+                <option value="TI">Tarjeta de identidad</option>
+                <option value="Pasaporte">Pasaporte</option>
+              </select>
+            </label>
+            <label>Número de identificación<input type="text" formControlName="idNumber" autocomplete="off" /></label>
+            <span></span>
+            <label>País<input type="text" formControlName="country" autocomplete="country-name" /></label>
+            <label>Departamento<input type="text" formControlName="department" autocomplete="address-level1" /></label>
+            <label>Ciudad<input type="text" formControlName="city" autocomplete="address-level2" /></label>
+          </div>
+        </fieldset>
+        <div class="form-actions">
+          <button type="submit" [disabled]="isLoading() || isSaving() || form.invalid">{{ isSaving() ? 'Guardando…' : 'Guardar cambios' }}</button>
+        </div>
+      </form>
+
+      <form class="panel profile-form password-form" [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+        <div>
+          <h2>Cambiar contraseña</h2>
+          <p class="muted">Por seguridad, al cambiarla se cerrará tu sesión en todos los dispositivos.</p>
+        </div>
+        <fieldset [disabled]="isLoading() || isChangingPassword()">
+          <div class="form-grid">
+            <label>Contraseña actual<input type="password" formControlName="currentPassword" autocomplete="current-password" /></label>
+            <span></span>
+            <label>Contraseña nueva<input type="password" formControlName="password" autocomplete="new-password" /></label>
+            <label>Confirma la contraseña nueva<input type="password" formControlName="passwordConfirmation" autocomplete="new-password" /></label>
+          </div>
+          <small class="password-hint">Mínimo 8 caracteres, con letras y números.</small>
+        </fieldset>
+        <div class="form-actions">
+          <button type="submit" [disabled]="isLoading() || isChangingPassword() || passwordForm.invalid">
+            {{ isChangingPassword() ? 'Actualizando…' : 'Cambiar contraseña' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+</section>

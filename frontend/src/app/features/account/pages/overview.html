@@ -1,0 +1,60 @@
+<section class="page-shell">
+  <app-producer-sidebar />
+
+  <main class="content">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Mi cuenta</p>
+        <h1>Mi producción</h1>
+        <p class="muted">Aquí solo se muestran los datos asociados a tus fincas aprobadas.</p>
+      </div>
+      <a class="secondary" routerLink="/account/profile">Editar perfil</a>
+    </header>
+
+    @if (error()) { <p class="alert error" role="alert">{{ error() }}</p> }
+
+    @if (isLoading()) {
+      <p class="notice">Cargando los datos de tu producción…</p>
+    } @else if (data(); as overview) {
+      <section class="kpis" aria-label="Resumen de mi producción">
+        <article><span>Fincas aprobadas</span><strong>{{ overview.fincas.length }}</strong></article>
+        <article><span>Lotes</span><strong>{{ overview.lotes.length }}</strong></article>
+        <article><span>Actividades</span><strong>{{ overview.actividades.length }}</strong></article>
+        <article><span>Lecturas IoT</span><strong>{{ overview.lecturas.length }}</strong></article>
+      </section>
+
+      <section class="charts">
+        <article class="panel">
+          <h2>Mis fincas y lotes</h2>
+          @for (finca of overview.fincas; track finca.id) {
+            <div class="row"><strong>{{ finca.nombre || 'Finca sin nombre' }}</strong><span>{{ finca.hectareas_totales || 0 }} ha</span></div>
+            @for (lote of overview.lotes; track lote.id) {
+              @if (lote.finca_id === finca.id) { <div class="row"><span>{{ lote.nombre }} · {{ lote.tipo_cultivo }}</span><span>{{ lote.hectareas }} ha</span></div> }
+            }
+          } @empty { <p class="empty">No tienes fincas aprobadas aún.</p> }
+        </article>
+
+        <article class="panel">
+          <h2>Actividades recientes</h2>
+          @for (actividad of overview.actividades; track actividad.id) {
+            <div class="row"><strong>{{ actividad.tipo_actividad.replace('_', ' ') }}</strong><span>{{ actividad.fecha }}</span></div>
+          } @empty { <p class="empty">Aún no hay actividades registradas.</p> }
+        </article>
+
+        <article class="panel">
+          <h2>Últimas lecturas IoT</h2>
+          @for (lectura of overview.lecturas.slice(0, 8); track lectura.id) {
+            <div class="row"><strong>{{ lectura.tipo_medicion.replace('_', ' ') }}</strong><span>{{ lectura.valor }} {{ lectura.unidad }}</span></div>
+          } @empty { <p class="empty">Aún no hay lecturas IoT registradas.</p> }
+        </article>
+
+        <article class="panel">
+          <h2>Mi multimedia</h2>
+          @for (archivo of overview.archivos.slice(0, 8); track archivo.id) {
+            <div class="media-item"><strong>{{ archivo.tipo_archivo || 'Nota' }}</strong><span>{{ archivo.categoria || 'seguimiento' }}</span></div>
+          } @empty { <p class="empty">Aún no hay evidencia multimedia registrada.</p> }
+        </article>
+      </section>
+    }
+  </main>
+</section>

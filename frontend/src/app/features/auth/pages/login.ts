@@ -31,7 +31,9 @@ export class Login {
   readonly notice = signal(
     this.route.snapshot.queryParamMap.get('expired')
       ? 'Tu sesión expiró. Vuelve a iniciar sesión.'
-      : '',
+      : this.route.snapshot.queryParamMap.get('passwordChanged')
+        ? 'Tu contraseña fue actualizada. Inicia sesión nuevamente.'
+        : '',
   );
 
   constructor() {
@@ -71,6 +73,6 @@ export class Login {
   }
 
   private redirectTarget(): string {
-    return this.route.snapshot.queryParamMap.get('redirect') ?? '/estates';
+    return this.route.snapshot.queryParamMap.get('redirect') ?? this.auth.defaultRoute();
   }
 }

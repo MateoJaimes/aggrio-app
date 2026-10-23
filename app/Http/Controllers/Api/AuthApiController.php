@@ -9,9 +9,12 @@ use App\Models\User;
 use App\Services\ApiTokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class AuthApiController extends Controller
 {
@@ -128,11 +131,89 @@ class AuthApiController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
+        $user = $request->user();
+
         return response()->json([
             'success' => true,
             'data' => [
-                'user' => $request->user()->toAuthPayload(),
+                'user' => $user->toAuthPayload(),
+                'profile' => $this->profilePayload(
+                    $user,
+                    AccessRequest::where('email', $user->email)->first(),
+                ),
             ],
+        ], 200);
+    }
+
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $accessRequest = AccessRequest::where('email', $user->email)->first();
+
+        if ($user->isSuperAdmin() || ! $accessRequest) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Este perfil no está asociado a un productor aprobado.',
+            ], 403);
+        }
+
+        $data = $request->validate([
+            'firstname' => ['required', 'string', 'max:40', 'regex:/^[A-Za-zÀ-ÿ\\s]{3,40}$/u'],
+            'lastname' => ['required', 'string', 'max:40', 'regex:/^[A-Za-zÀ-ÿ\\s]{3,40}$/u'],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+                Rule::unique('access_requests', 'email')->ignore($accessRequest?->id),
+            ],
+            'id_type' => ['required', Rule::in(['CC', 'TI', 'Pasaporte'])],
+            'id_number' => [
+                'required',
+                'string',
+                'regex:/^[0-9A-Za-z]{5,20}$/',
+                Rule::unique('access_requests', 'id_number')->ignore($accessRequest->id),
+            ],
+            'country' => 'required|string|max:255',
+            'department' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+        ]);
+
+        DB::transaction(function () use ($user, $data, $accessRequest): void {
+            $user->update([
+                'name' => trim("{$data['firstname']} {$data['lastname']}"),
+                'email' => $data['email'],
+            ]);
+            $accessRequest->update($data);
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Datos de perfil actualizados correctamente.',
+            'data' => [
+                'user' => $user->fresh()->toAuthPayload(),
+                'profile' => $this->profilePayload($user->fresh(), $accessRequest->fresh()),
+            ],
+        ], 200);
+    }
+
+    public function updatePassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'current_password' => ['required', 'current_password:sanctum'],
+            'password' => ['required', 'confirmed', PasswordRule::min(8)->letters()->numbers()],
+        ]);
+
+        $user = $request->user();
+        $user->forceFill([
+            'password' => Hash::make($request->string('password')->toString()),
+            'remember_token' => Str::random(60),
+        ])->save();
+        $this->tokens->revokeAll($user);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tu contraseña fue actualizada. Inicia sesión nuevamente.',
         ], 200);
     }
 
@@ -165,5 +246,27 @@ class AuthApiController extends Controller
             'success' => true,
             'message' => 'Todas las sesiones han sido cerradas',
         ], 200);
+    }
+
+    /**
+     * Datos de contacto e identificación que pertenecen a la solicitud
+     * aprobada del productor, no al payload genérico de sesión.
+     *
+     * @return array<string, string|null>
+     */
+    private function profilePayload(User $user, ?AccessRequest $accessRequest): array
+    {
+        $name = preg_split('/\\s+/', trim($user->name), 2) ?: [];
+
+        return [
+            'firstname' => $accessRequest?->firstname ?? ($name[0] ?? ''),
+            'lastname' => $accessRequest?->lastname ?? ($name[1] ?? ''),
+            'email' => $user->email,
+            'id_type' => $accessRequest?->id_type,
+            'id_number' => $accessRequest?->id_number,
+            'country' => $accessRequest?->country,
+            'department' => $accessRequest?->department,
+            'city' => $accessRequest?->city,
+        ];
     }
 }

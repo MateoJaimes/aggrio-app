@@ -12,6 +12,10 @@ export const routes: Routes = [
     loadChildren: () => import('./features/auth/auth.routes').then((m) => m.authRoutes),
   },
   {
+    path: 'account',
+    loadChildren: () => import('./features/account/account.routes').then((m) => m.accountRoutes),
+  },
+  {
     path: 'access-requests',
     loadChildren: () => import('./features/access-requests/access-requests.routes').then((m) => m.accessRequestsRoutes),
   },
@@ -37,11 +41,11 @@ export const routes: Routes = [
   },
   {
     path: '',
-    redirectTo: 'estates',
+    redirectTo: 'account',
     pathMatch: 'full',
   },
   {
     path: '**',
-    redirectTo: 'estates',
+    redirectTo: 'account',
   },
 ];

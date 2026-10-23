@@ -99,7 +99,9 @@ html[data-theme='dark'] :is(
   app-login,
   app-two-factor,
   app-reset-password,
-  app-forgot-password
+  app-forgot-password,
+  app-account-overview,
+  app-profile
 ) {
   color: var(--aggrio-ink);
   background: var(--aggrio-page-background);

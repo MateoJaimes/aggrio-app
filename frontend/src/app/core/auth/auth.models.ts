@@ -9,6 +9,28 @@ export interface User {
   two_factor_enabled: boolean;
 }
 
+export interface ProfileInput {
+  firstname: string;
+  lastname: string;
+  email: string;
+  idType: 'CC' | 'TI' | 'Pasaporte';
+  idNumber: string;
+  country: string;
+  department: string;
+  city: string;
+}
+
+export interface ProducerProfile {
+  firstname: string;
+  lastname: string;
+  email: string;
+  id_type: 'CC' | 'TI' | 'Pasaporte' | null;
+  id_number: string | null;
+  country: string | null;
+  department: string | null;
+  city: string | null;
+}
+
 /** Par de tokens que entrega el backend al completar el login (RF004). */
 export interface TokenPair {
   access_token: string;

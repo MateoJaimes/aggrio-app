@@ -25,9 +25,7 @@ import { AuthService } from './auth.service';
           </span>
         </div>
 
-        @if (currentUser.is_superadmin) {
-          <span class="role">Superadmin</span>
-        }
+        <span class="role">{{ currentUser.is_superadmin ? 'Superadmin' : 'Productor' }}</span>
 
         @if (error()) {
           <p class="session-error" role="alert">{{ error() }}</p>

@@ -10,8 +10,8 @@ use App\Models\Lote;
 use App\Services\TranscriptionService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class MultimediaApiController extends Controller
@@ -43,6 +43,25 @@ class MultimediaApiController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Evidencia multimedia recuperada con éxito.',
+            'data' => $archivos,
+        ], 200);
+    }
+
+    /**
+     * Lista únicamente la evidencia que pertenece al productor autenticado.
+     * La propiedad se resuelve a través de finca, lote o actividad.
+     */
+    public function indexOwn(Request $request): JsonResponse
+    {
+        $query = $this->adminMultimediaQuery();
+        $this->filterByFincaOwner($query, $request->user()->id);
+
+        $archivos = $query->orderByDesc('created_at')->orderByDesc('id')->get();
+        $archivos->each(fn (ArchivoMultimedia $archivo) => $this->appendFileUrl($archivo));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tu evidencia multimedia fue recuperada con éxito.',
             'data' => $archivos,
         ], 200);
     }
@@ -132,20 +151,20 @@ class MultimediaApiController extends Controller
     {
         // 1. Validar el JSON ligero (Ya no exigimos 'file', solo texto y arrays)
         $request->validate([
-            'modelo_tipo' => 'required|string|in:actividad,lote,finca', 
-            'modelo_id'   => 'required|integer',
+            'modelo_tipo' => 'required|string|in:actividad,lote,finca',
+            'modelo_id' => 'required|integer',
             'archivos_subidos' => 'nullable|array',
             'archivos_subidos.*.ruta_archivo' => 'required_with:archivos_subidos|string',
             'archivos_subidos.*.tipo_archivo' => 'required_with:archivos_subidos|string',
-            'archivos_subidos.*.peso_bytes'   => 'required_with:archivos_subidos|numeric',
-            'texto'       => 'nullable|string',
-            'categoria'   => 'nullable|string|in:seguimiento,enfermedad'
+            'archivos_subidos.*.peso_bytes' => 'required_with:archivos_subidos|numeric',
+            'texto' => 'nullable|string',
+            'categoria' => 'nullable|string|in:seguimiento,enfermedad',
         ]);
 
-        if (empty($request->archivos_subidos) && !$request->filled('texto')) {
+        if (empty($request->archivos_subidos) && ! $request->filled('texto')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Debes enviar al menos los datos de un archivo o una nota de texto.'
+                'message' => 'Debes enviar al menos los datos de un archivo o una nota de texto.',
             ], 400);
         }
 
@@ -153,28 +172,28 @@ class MultimediaApiController extends Controller
         $finca = null;
 
         if ($request->modelo_tipo === 'finca') {
-            $finca = \App\Models\Finca::find($request->modelo_id);
+            $finca = Finca::find($request->modelo_id);
         } elseif ($request->modelo_tipo === 'lote') {
-            $lote = \App\Models\Lote::find($request->modelo_id);
+            $lote = Lote::find($request->modelo_id);
             $finca = $lote ? $lote->finca : null;
         } elseif ($request->modelo_tipo === 'actividad') {
-            $actividad = \App\Models\Actividad::find($request->modelo_id);
+            $actividad = Actividad::find($request->modelo_id);
             $finca = ($actividad && $actividad->lote) ? $actividad->lote->finca : null;
         }
 
         // 3. CANDADO MAESTRO: Seguridad
-        if (!$finca || $finca->user_id !== $request->user()->id || $finca->estado !== 'aprobado') {
+        if (! $finca || $finca->user_id !== $request->user()->id || $finca->estado !== 'aprobado') {
             return response()->json([
                 'success' => false,
-                'message' => 'Acceso denegado. Finca bloqueada o inexistente.'
+                'message' => 'Acceso denegado. Finca bloqueada o inexistente.',
             ], 403);
         }
 
         // 4. Preparar el modelo polimórfico
         $modeloClase = match ($request->modelo_tipo) {
-            'finca'     => \App\Models\Finca::class,
-            'lote'      => \App\Models\Lote::class,
-            'actividad' => \App\Models\Actividad::class,
+            'finca' => Finca::class,
+            'lote' => Lote::class,
+            'actividad' => Actividad::class,
         };
 
         $entidad = $modeloClase::findOrFail($request->modelo_id);
@@ -183,10 +202,10 @@ class MultimediaApiController extends Controller
         $textoTranscrito = $request->texto;
 
         // 5. Guardar Archivos en la Base de Datos (Flutter ya los subió a MinIO)
-        if (!empty($request->archivos_subidos)) {
+        if (! empty($request->archivos_subidos)) {
             foreach ($request->archivos_subidos as $archivo) {
                 $esAudio = in_array($archivo['tipo_archivo'], ['audio', 'nota_audio']);
-                
+
                 $textoFinal = $textoTranscrito;
 
                 // Si es audio y no hay texto, intentar transcribir
@@ -194,13 +213,13 @@ class MultimediaApiController extends Controller
                     $textoFinal = $transcription->transcribeAudio($archivo['ruta_archivo']);
                 }
 
-                $archivosGuardados[] = \App\Models\ArchivoMultimedia::create([
-                    'fileable_type' => $modeloClase,  
-                    'fileable_id'   => $entidad->id,  
-                    'ruta_archivo'  => $archivo['ruta_archivo'],
-                    'tipo_archivo'  => $archivo['tipo_archivo'],
-                    'peso_bytes'    => $archivo['peso_bytes'],
-                    'categoria'     => $categoria,
+                $archivosGuardados[] = ArchivoMultimedia::create([
+                    'fileable_type' => $modeloClase,
+                    'fileable_id' => $entidad->id,
+                    'ruta_archivo' => $archivo['ruta_archivo'],
+                    'tipo_archivo' => $archivo['tipo_archivo'],
+                    'peso_bytes' => $archivo['peso_bytes'],
+                    'categoria' => $categoria,
                     'contenido_texto' => $textoFinal,
                 ]);
             }
@@ -208,19 +227,19 @@ class MultimediaApiController extends Controller
 
         // 6. Guardar Texto (si no viene de transcripción de audio)
         if ($request->filled('texto') && empty($request->archivos_subidos)) {
-            $archivosGuardados[] = \App\Models\ArchivoMultimedia::create([
-                'fileable_type'   => $modeloClase,
-                'fileable_id'     => $entidad->id,
+            $archivosGuardados[] = ArchivoMultimedia::create([
+                'fileable_type' => $modeloClase,
+                'fileable_id' => $entidad->id,
                 'contenido_texto' => $request->texto,
-                'tipo_archivo'    => 'nota_texto',
-                'categoria'       => $categoria,
+                'tipo_archivo' => 'nota_texto',
+                'categoria' => $categoria,
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => count($archivosGuardados) . ' registro(s) multimedia guardado(s) correctamente.',
-            'data'    => $archivosGuardados
+            'message' => count($archivosGuardados).' registro(s) multimedia guardado(s) correctamente.',
+            'data' => $archivosGuardados,
         ], 201);
     }
 

@@ -20,6 +20,7 @@ class ResetPasswordNotification extends Notification
     public function __construct(
         #[\SensitiveParameter]
         public string $token,
+        private ?string $url = null,
     ) {}
 
     /**
@@ -36,16 +37,19 @@ class ResetPasswordNotification extends Notification
 
         return (new MailMessage)
             ->subject('Restablece tu contraseña de '.config('app.name'))
-            ->greeting('Hola '.$notifiable->name)
-            ->line('Recibimos una solicitud para restablecer la contraseña de tu cuenta.')
-            ->action('Restablecer contraseña', $this->resetUrl($notifiable))
-            ->line("Este enlace caduca en {$minutes} minutos.")
-            ->line('Si no solicitaste el cambio, puedes ignorar este correo: tu contraseña no se modificará.')
-            ->salutation('El equipo de '.config('app.name'));
+            ->view('emails.reset-password', [
+                'user' => $notifiable,
+                'resetUrl' => $this->resetUrl($notifiable),
+                'minutes' => $minutes,
+            ]);
     }
 
     private function resetUrl(object $notifiable): string
     {
+        if ($this->url !== null) {
+            return $this->url;
+        }
+
         $base = rtrim((string) config('app.frontend_url'), '/');
 
         return $base.'/auth/reset-password?'.http_build_query([

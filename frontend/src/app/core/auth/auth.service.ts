@@ -11,6 +11,8 @@ import {
   TwoFactorSetupPayload,
   TwoFactorStatusPayload,
   User,
+  ProducerProfile,
+  ProfileInput,
   requiresTwoFactor,
 } from './auth.models';
 import { refreshState } from './refresh-state';
@@ -35,6 +37,7 @@ export class AuthService {
   readonly currentUser = this.userSignal.asReadonly();
   readonly isAuthenticated = computed(() => this.userSignal() !== null && this.getToken() !== null);
   readonly isSuperAdmin = computed(() => this.userSignal()?.is_superadmin === true);
+  readonly isProducer = computed(() => this.isAuthenticated() && !this.isSuperAdmin());
 
   // -------------------------------------------------------------- login (RF003)
 
@@ -89,6 +92,45 @@ export class AuthService {
     return this.http
       .get<ApiResponse<TwoFactorStatusPayload>>(`${this.baseUrl}/2fa/status`)
       .pipe(map((response) => response.data as TwoFactorStatusPayload));
+  }
+
+  getProfile(): Observable<ProducerProfile> {
+    return this.http.get<ApiResponse<{ user: User; profile: ProducerProfile }>>(`${this.baseUrl}/me`).pipe(
+      tap((response) => this.storeUser(response.data?.user as User)),
+      map((response) => response.data?.profile as ProducerProfile),
+    );
+  }
+
+  updateProfile(input: ProfileInput): Observable<ProducerProfile> {
+    return this.http.patch<ApiResponse<{ user: User; profile: ProducerProfile }>>(`${this.baseUrl}/me`, {
+      firstname: input.firstname,
+      lastname: input.lastname,
+      email: input.email,
+      id_type: input.idType,
+      id_number: input.idNumber,
+      country: input.country,
+      department: input.department,
+      city: input.city,
+    }).pipe(
+      tap((response) => this.storeUser(response.data?.user as User)),
+      map((response) => response.data?.profile as ProducerProfile),
+    );
+  }
+
+  changePassword(input: {
+    currentPassword: string;
+    password: string;
+    passwordConfirmation: string;
+  }): Observable<string> {
+    return this.http.patch<ApiResponse<null>>(`${this.baseUrl}/me/password`, {
+      current_password: input.currentPassword,
+      password: input.password,
+      password_confirmation: input.passwordConfirmation,
+    }).pipe(map((response) => response.message ?? 'Tu contraseña fue actualizada.'));
+  }
+
+  defaultRoute(): string {
+    return this.isSuperAdmin() ? '/estates' : '/account';
   }
 
   hasPendingChallenge(): boolean {
@@ -236,9 +278,13 @@ export class AuthService {
     safeWrite(EXPIRES_AT_KEY, payload.expires_at);
 
     if (payload.user) {
-      safeWrite(USER_KEY, JSON.stringify(payload.user));
-      this.userSignal.set(payload.user);
+      this.storeUser(payload.user);
     }
+  }
+
+  private storeUser(user: User): void {
+    safeWrite(USER_KEY, JSON.stringify(user));
+    this.userSignal.set(user);
   }
 
   private storeChallenge(token: string, enrolled: boolean): void {
