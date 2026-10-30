@@ -29,7 +29,7 @@ export class LoteAdminService {
     return this.http.put<ApiResponse<Lote>>(`${this.baseUrl}/${id}`, payload);
   }
 
-  deleteLote(id: number): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/${id}`);
+  deleteLote(id: number, motivo: string): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/${id}`, { body: { motivo } });
   }
 }

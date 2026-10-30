@@ -9,6 +9,12 @@ export const authGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
 
   if (auth.isAuthenticated()) {
+    if (
+      auth.currentUser()?.must_change_password &&
+      !state.url.startsWith('/auth/change-password')
+    ) {
+      return router.createUrlTree(['/auth/change-password']);
+    }
     return true;
   }
 
@@ -26,7 +32,7 @@ export const adminGuard: CanActivateFn = (route, state) => {
     return authenticated;
   }
 
-  return auth.isSuperAdmin() ? true : router.createUrlTree(['/auth/login']);
+  return auth.isSuperAdmin() ? true : router.createUrlTree(['/campo']);
 };
 
 /** Impide volver al login cuando ya hay sesión. */
@@ -34,7 +40,15 @@ export const guestGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  return auth.isAuthenticated() ? router.createUrlTree(['/estates']) : true;
+  return auth.isAuthenticated()
+    ? router.createUrlTree([
+        auth.currentUser()?.must_change_password
+          ? '/auth/change-password'
+          : auth.isSuperAdmin()
+            ? '/dashboard'
+            : '/campo',
+      ])
+    : true;
 };
 
 /** La pantalla de doble factor sólo tiene sentido con un reto pendiente. */

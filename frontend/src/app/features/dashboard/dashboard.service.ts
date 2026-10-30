@@ -6,6 +6,8 @@ import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../../core/models/api-response.model';
 
 export interface DashboardData {
+  onboarding?: { productores: number; solicitudes_pendientes: number };
+  produccion?: { costos_produccion: number; inversion: number; ventas: number; cobrado: number; resultado: number; margen_porcentaje: number | null };
   kpis: { fincas: number; lotes_activos: number; hectareas_cultivadas: number | string; inversion_total: number | string; registros_iot: number; actividades: number };
   estado_fincas: Array<{ estado: string; total: number }>;
   cultivos_hectareas: Array<{ tipo_cultivo: string; hectareas: number | string }>;

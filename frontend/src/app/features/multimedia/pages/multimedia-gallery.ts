@@ -1,13 +1,13 @@
 import { AdminSidebar } from '../../admin-sidebar';
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { Actividad } from '../../activities/models/actividad.model';
 import { Finca, UserSummary } from '../../estates/models/finca.model';
 import { FincaAdminService } from '../../estates/services/finca-admin.service';
 import { Lote } from '../../lots/models/lote.model';
-import { ArchivoMultimedia, MultimediaCategoria } from '../models/archivo-multimedia.model';
+import { ArchivoMultimedia, MultimediaCategoria, ProductionEvidenceContext } from '../models/archivo-multimedia.model';
 import { MultimediaAdminService } from '../services/multimedia-admin.service';
 
 @Component({
@@ -17,7 +17,7 @@ import { MultimediaAdminService } from '../services/multimedia-admin.service';
   templateUrl: './multimedia-gallery.html',
   styleUrls: ['../../lots/pages/lots-shell.scss', '../../lots/pages/lot-list.scss', './multimedia-gallery.scss'],
 })
-export class MultimediaGallery implements OnInit {
+export class MultimediaGallery implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly multimediaAdminService = inject(MultimediaAdminService);
   private readonly fincaAdminService = inject(FincaAdminService);
@@ -33,6 +33,15 @@ export class MultimediaGallery implements OnInit {
   readonly selectedOwnerId = signal<number | null>(null);
   readonly search = signal('');
   readonly selectedArchivo = signal<ArchivoMultimedia | null>(null);
+  readonly previewUrl = signal('');
+  private previewEpoch = 0;
+
+  ngOnDestroy(): void { this.clearPreview(); }
+  private clearPreview(): void {
+    ++this.previewEpoch;
+    if (this.previewUrl()) URL.revokeObjectURL(this.previewUrl());
+    this.previewUrl.set('');
+  }
 
   readonly metadataForm = this.fb.nonNullable.group({
     categoria: ['seguimiento' as MultimediaCategoria, [Validators.required]],
@@ -110,6 +119,12 @@ export class MultimediaGallery implements OnInit {
   }
 
   openDetails(archivo: ArchivoMultimedia): void {
+    this.clearPreview();
+    const epoch = this.previewEpoch;
+    if (archivo.ruta_archivo) this.multimediaAdminService.downloadArchivo(archivo.id).subscribe({
+      next: blob => { if (epoch === this.previewEpoch) this.previewUrl.set(URL.createObjectURL(blob)); },
+      error: error => this.error.set(this.getErrorMessage(error, 'No se pudo abrir el archivo privado.')),
+    });
     this.selectedArchivo.set(archivo);
     this.metadataForm.patchValue({
       categoria: archivo.categoria ?? 'seguimiento',
@@ -119,6 +134,7 @@ export class MultimediaGallery implements OnInit {
 
   closeDetails(): void {
     if (!this.isSaving()) {
+      this.clearPreview();
       this.selectedArchivo.set(null);
     }
   }
@@ -131,6 +147,8 @@ export class MultimediaGallery implements OnInit {
       return;
     }
 
+    const motivo = window.prompt('Motivo de la corrección de esta evidencia');
+    if (!motivo?.trim()) return;
     this.isSaving.set(true);
     this.error.set('');
 
@@ -138,7 +156,7 @@ export class MultimediaGallery implements OnInit {
     this.multimediaAdminService.updateArchivo(archivo.id, {
       categoria: raw.categoria,
       contenido_texto: raw.contenido_texto.trim() || null,
-    }).subscribe({
+    }, motivo).subscribe({
       next: (response) => {
         const updated = response.data;
 
@@ -158,11 +176,11 @@ export class MultimediaGallery implements OnInit {
   }
 
   deleteArchivo(archivo: ArchivoMultimedia): void {
-    const confirmed = window.confirm(
-      `¿Deseas eliminar este archivo de ${this.ownerName(archivo)}? Esta acción también eliminará el archivo físico cuando exista.`,
+    const motivo = window.prompt(
+      `¿Deseas archivar este archivo de ${this.ownerName(archivo)}? Se conservan el archivo y su historial. Escribe el motivo para continuar.`,
     );
 
-    if (!confirmed) {
+    if (!motivo?.trim()) {
       return;
     }
 
@@ -170,7 +188,7 @@ export class MultimediaGallery implements OnInit {
     this.error.set('');
     this.notice.set('');
 
-    this.multimediaAdminService.deleteArchivo(archivo.id).subscribe({
+    this.multimediaAdminService.deleteArchivo(archivo.id, motivo).subscribe({
       next: (response) => {
         this.archivos.update((archivos) => archivos.filter((item) => item.id !== archivo.id));
 
@@ -212,6 +230,11 @@ export class MultimediaGallery implements OnInit {
     if (archivo.fileable_type === 'App\\Models\\Actividad') {
       const actividad = fileable as Actividad;
       return `Actividad: ${actividad.tipo_actividad} · ${actividad.lote?.nombre ?? `Lote #${actividad.lote_id}`}`;
+    }
+
+    if (archivo.fileable_type === 'App\\Models\\ProductionRecord') {
+      const record = fileable as ProductionEvidenceContext;
+      return `${record.tipo}: ${record.nombre} · ${record.finca?.nombre ?? ''}`;
     }
 
     return 'Entidad no disponible';
@@ -290,6 +313,10 @@ export class MultimediaGallery implements OnInit {
 
     if (archivo.fileable_type === 'App\\Models\\Actividad') {
       return (fileable as Actividad).lote?.finca?.user;
+    }
+
+    if (archivo.fileable_type === 'App\\Models\\ProductionRecord') {
+      return (fileable as ProductionEvidenceContext).finca?.user;
     }
 
     return undefined;

@@ -26,7 +26,7 @@
 
 .eyebrow {
   margin: 0;
-  color: #4f46e5;
+  color: #c51217;
   font-size: .72rem;
   font-weight: 700;
   letter-spacing: .12rem;
@@ -35,7 +35,7 @@
 
 h1 {
   margin: .15rem 0 0;
-  font-size: clamp(2rem, 2.6vw, 2.8rem);
+  font-size: clamp(1.8rem, 2.6vw, 2.5rem);
   letter-spacing: -.05em;
 }
 
@@ -54,16 +54,16 @@ button.primary {
   border: 0;
   color: #fff;
   cursor: pointer;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  box-shadow: 0 10px 20px rgba(37, 99, 235, .2);
+  background: linear-gradient(135deg, var(--aggrio-primary) 0%, var(--aggrio-primary-dark) 100%);
+  box-shadow: 0 10px 20px rgba(236, 28, 33, .2);
   text-decoration: none;
 }
 
 .button.secondary {
   padding: .8rem 1.1rem;
   border: 1px solid #c7d2fe;
-  color: #1f2937;
-  background: rgba(255, 255, 255, .9);
+  color: var(--aggrio-ink);
+  background: var(--aggrio-surface);
   box-shadow: 0 8px 18px rgba(15, 23, 42, .06);
   text-decoration: none;
 }
@@ -75,8 +75,8 @@ button.primary {
   border-radius: .85rem;
 }
 
-.alert.error { color: #991b1b; border-color: #fecaca; background: #fef2f2; }
-.alert.success { color: #166534; border-color: #bbf7d0; background: #f0fdf4; }
+.alert.error { color: var(--aggrio-danger); border-color: var(--aggrio-danger-border); background: var(--aggrio-danger-background); }
+.alert.success { color: var(--aggrio-success); border-color: var(--aggrio-success-border); background: var(--aggrio-success-background); }
 
 @media (max-width: 980px) {
   .page-shell { flex-direction: column; }

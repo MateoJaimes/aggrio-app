@@ -46,6 +46,7 @@
           <label class="field">
             <span>Tipo de cultivo *</span>
             <input type="text" formControlName="tipo_cultivo" list="cultivos" placeholder="Ej. Cacao" maxlength="255" />
+            <small>Referencia inicial del lote. Administra plantaciones y ciclos desde <a routerLink="/produccion">Producción y rentabilidad</a>.</small>
             <datalist id="cultivos"><option value="Cacao"></option><option value="Café"></option><option value="Aguacate"></option><option value="Maíz"></option><option value="Otro"></option></datalist>
             @if (form.controls.tipo_cultivo.touched && form.controls.tipo_cultivo.invalid) { <small class="field-error">Ingresa el cultivo.</small> }
           </label>

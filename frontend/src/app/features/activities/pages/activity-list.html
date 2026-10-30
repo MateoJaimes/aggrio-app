@@ -62,7 +62,7 @@
                   <td class="observation">{{ actividad.observaciones || '—' }}</td>
                   <td class="actions">
                     <a [routerLink]="['/activities', actividad.id, 'edit']">Editar</a>
-                    <button class="delete" type="button" (click)="deleteActividad(actividad)" [disabled]="deletingId() === actividad.id">{{ deletingId() === actividad.id ? 'Eliminando…' : 'Eliminar' }}</button>
+                    <button class="delete" type="button" (click)="deleteActividad(actividad)" [disabled]="deletingId() === actividad.id">{{ deletingId() === actividad.id ? 'Archivando…' : 'Archivar' }}</button>
                   </td>
                 </tr>
               } @empty {

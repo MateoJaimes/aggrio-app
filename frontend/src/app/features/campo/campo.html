@@ -1,0 +1,672 @@
+<div class="field-shell">
+  <app-sidebar
+    variant="producer"
+    [activeSection]="tab() === 'lotes' ? 'fincas' : tab()"
+    [disabled]="busy()"
+    (sectionChange)="selectTab($event)"
+  />
+  <main>
+    <header class="page-heading">
+      <div>
+        <p class="eyebrow">Mi campo</p>
+        <h1>{{ title() }}</h1>
+        <p>
+          {{
+            tab() === 'resumen'
+              ? 'Hola, ' + (auth.currentUser()?.name ?? '') + '. ¿Qué vas a registrar hoy?'
+              : 'Cada registro queda guardado en tu finca y su lote.'
+          }}
+        </p>
+      </div>
+      @if (farms().length > 1 && tab() !== 'perfil') {
+        <label class="farm-switch"
+          >Tu finca<select [(ngModel)]="farmId" (ngModelChange)="changeFarm()">
+            @for (f of farms(); track f.id) {
+              <option [ngValue]="f.id">{{ f.nombre }}</option>
+            }
+          </select></label
+        >
+      }
+    </header>
+    @if (loading()) {
+      <p role="status">Cargando tu finca…</p>
+    }
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    @if (notice()) {
+      <p class="notice" role="status">{{ notice() }}</p>
+    }
+    @switch (tab()) {
+      @case ('resumen') {
+        @if (!loading()) {
+          @if (!farms().length) {
+            <section class="next-step">
+              <span class="step-number">1</span>
+              <div>
+                <h2>Empecemos por tu finca</h2>
+                <p>
+                  Solicita vincularla a tu cuenta. El administrador revisa el acceso; tú registras
+                  sus datos y el trabajo.
+                </p>
+              </div>
+              <button (click)="selectTab('fincas'); requestFarmOpen = true">
+                Registrar mi finca
+              </button>
+            </section>
+          } @else if (farm(); as f) {
+            @if (f.estado !== 'aprobado') {
+              <section class="next-step">
+                <span class="step-number">1</span>
+                <div>
+                  <h2>
+                    {{
+                      f.estado === 'rechazado'
+                        ? 'La finca necesita revisión'
+                        : 'Tu finca está en revisión'
+                    }}
+                  </h2>
+                  <p>
+                    El administrador revisa la vinculación de {{ f.nombre }}. Cuando la apruebe
+                    podrás continuar aquí.
+                  </p>
+                </div>
+                <button class="secondary" (click)="loadFarms()">Consultar estado</button>
+              </section>
+            } @else if (!f.perfil_completo) {
+              <section class="next-step">
+                <span class="step-number">2</span>
+                <div>
+                  <h2>Completa los datos de {{ f.nombre }}</h2>
+                  <p>
+                    Nombre, tamaño y ubicación son los datos básicos para empezar. Puedes completar
+                    los demás después.
+                  </p>
+                </div>
+                <button (click)="selectTab('fincas'); farmSetupStep = 0; farmEditorOpen = true">
+                  Preparar mi finca
+                </button>
+              </section>
+            } @else if (!activePlots().length) {
+              <section class="next-step">
+                <span class="step-number">3</span>
+                <div>
+                  <h2>Añade tu primer lote</h2>
+                  <p>
+                    Un lote es una parte de tu finca donde realizas el trabajo. Ponle un nombre que
+                    reconozcas y su tamaño.
+                  </p>
+                </div>
+                <button (click)="startPlot()">Crear mi primer lote</button>
+              </section>
+            } @else {
+              <section class="ready-banner">
+                <div>
+                  <small>Finca seleccionada</small>
+                  <h2>{{ f.nombre }}</h2>
+                  <p>Tu finca está lista para registrar cultivos y trabajo.</p>
+                </div>
+                <button class="secondary" (click)="selectTab('fincas')">Ver mi finca</button>
+              </section>
+            }
+          }
+        }
+        <div class="task-section">
+          <h2>¿Qué necesitas hacer?</h2>
+          <div class="task-grid">
+            <button
+              class="task-card"
+              [disabled]="!operational() || !activePlots().length"
+              (click)="goProduction('cultivos', true)"
+            >
+              <span class="task-icon">01</span><strong>Registrar un cultivo</strong
+              ><span>Lo que sembraste y en qué lote.</span><b aria-hidden="true">→</b>
+            </button>
+            <button
+              class="task-card"
+              [disabled]="!operational() || !activePlots().length"
+              (click)="goProduction('labores', true)"
+            >
+              <span class="task-icon">02</span><strong>Anotar el trabajo de hoy</strong
+              ><span>Riego, siembra, poda u otra labor.</span><b aria-hidden="true">→</b>
+            </button>
+            <button
+              class="task-card"
+              [disabled]="!operational()"
+              (click)="goProduction('costos', true)"
+            >
+              <span class="task-icon">03</span><strong>Anotar un gasto</strong
+              ><span>Insumos, jornales, maquinaria o compras.</span><b aria-hidden="true">→</b>
+            </button>
+            <button
+              class="task-card"
+              [disabled]="!operational() || !activePlots().length"
+              (click)="goProduction('cosechas', true)"
+            >
+              <span class="task-icon">04</span><strong>Registrar una cosecha</strong
+              ><span>La cantidad que recogiste de tu cultivo.</span><b aria-hidden="true">→</b>
+            </button>
+            <button
+              class="task-card"
+              [disabled]="!operational() || !activePlots().length"
+              (click)="goProduction('ventas', true)"
+            >
+              <span class="task-icon">05</span><strong>Anotar una venta</strong
+              ><span>Lo que vendiste y lo que te pagaron.</span><b aria-hidden="true">→</b>
+            </button>
+            <button class="task-card" (click)="goProduction('resumen')">
+              <span class="task-icon">06</span><strong>Ver mis cuentas</strong
+              ><span>Gastos, ventas y pagos pendientes.</span><b aria-hidden="true">→</b>
+            </button>
+          </div>
+        </div>
+        @if (summary()?.produccion; as p) {
+          <div class="summary-strip" aria-label="Resumen de mis cuentas">
+            <article>
+              <span>Gastos de producción</span
+              ><strong>{{
+                p.costos_produccion | currency: 'COP' : 'symbol-narrow' : '1.0-0'
+              }}</strong>
+            </article>
+            <article>
+              <span>Ventas registradas</span
+              ><strong>{{ p.ventas | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</strong>
+            </article>
+            <article>
+              <span>Resultado de ventas</span
+              ><strong>{{ p.resultado | currency: 'COP' : 'symbol-narrow' : '1.0-0' }}</strong>
+            </article>
+          </div>
+          <p class="hint">
+            Resultado de ventas = ventas menos gastos de producción. Los equipos e infraestructura
+            se muestran por separado en Mis cuentas.
+          </p>
+        }
+        <p class="help-line">
+          ¿Es tu primera vez? <a routerLink="/guia">Mira quién hace cada paso y cómo empezar.</a>
+        </p>
+      }
+      @case ('fincas') {
+        @if (farm(); as f) {
+          <section class="farm-overview">
+            <div>
+              <span class="status" [class.warning]="f.estado !== 'aprobado'">{{
+                label(f.estado)
+              }}</span>
+              <h2>{{ f.nombre }}</h2>
+              <p>
+                {{
+                  f.perfil_completo
+                    ? 'El administrador aprobó tu acceso. Tú organizas los lotes y registras el trabajo.'
+                    : 'Completa los datos básicos para poder crear tus lotes.'
+                }}
+              </p>
+            </div>
+            <div>
+              <strong>{{ f.hectareas_totales ?? '—' }} ha</strong><small>Superficie total</small
+              ><strong>{{ f.hectareas_disponibles | number: '1.0-2' }} ha</strong
+              ><small>Superficie disponible</small>
+            </div>
+          </section>
+          @if (f.estado === 'aprobado') {
+            @if (!f.perfil_completo || farmEditorOpen) {
+              <section class="card form-card">
+                <p class="eyebrow">Paso {{ farmSetupStep + 1 }} de 2</p>
+                <h2>{{ farmSetupStep === 0 ? '¿Cómo es tu finca?' : '¿Dónde está ubicada?' }}</h2>
+                <form
+                  #farmEditor="ngForm"
+                  (ngSubmit)="farmSetupStep === 0 ? (farmSetupStep = 1) : saveFarm()"
+                >
+                  @if (farmSetupStep === 0) {
+                    <label
+                      >Nombre de la finca<input
+                        name="farm-name"
+                        [(ngModel)]="farmForm.nombre"
+                        maxlength="255"
+                        required /></label
+                    ><label
+                      >Superficie total en hectáreas<input
+                        name="farm-area"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        [(ngModel)]="farmForm.hectareas_totales"
+                        required
+                      /><small
+                        >Por ejemplo: 2,5 hectáreas. Una hectárea equivale a 10.000 m².</small
+                      ></label
+                    >
+                  } @else {
+                    <p>Si estás en la entrada de tu finca, usa la ubicación del teléfono.</p>
+                    <button type="button" class="secondary" (click)="captureFarmLocation()">
+                      Usar mi ubicación actual
+                    </button>
+                    @if (farmForm.latitud !== null && farmForm.longitud !== null) {
+                      <p class="notice">
+                        Ubicación lista: {{ farmForm.latitud | number: '1.4-6' }},
+                        {{ farmForm.longitud | number: '1.4-6' }}.
+                      </p>
+                    }
+                    <details>
+                      <summary>Escribir o corregir coordenadas</summary>
+                      <div class="form-grid">
+                        <label
+                          >Latitud<input
+                            name="farm-lat"
+                            type="number"
+                            min="-90"
+                            max="90"
+                            step="any"
+                            [(ngModel)]="farmForm.latitud"
+                            required /></label
+                        ><label
+                          >Longitud<input
+                            name="farm-lng"
+                            type="number"
+                            min="-180"
+                            max="180"
+                            step="any"
+                            [(ngModel)]="farmForm.longitud"
+                            required
+                        /></label>
+                      </div>
+                    </details>
+                  }
+                  <div class="actions">
+                    @if (farmSetupStep === 1) {
+                      <button class="secondary" type="button" (click)="farmSetupStep = 0">
+                        Atrás
+                      </button>
+                    }
+                    <button
+                      [disabled]="
+                        farmEditor.invalid ||
+                        busy() ||
+                        (farmSetupStep === 1 &&
+                          (farmForm.latitud === null || farmForm.longitud === null))
+                      "
+                    >
+                      {{ farmSetupStep === 0 ? 'Continuar' : 'Guardar mi finca' }}
+                    </button>
+                    @if (f.perfil_completo) {
+                      <button type="button" class="text-action" (click)="farmEditorOpen = false">
+                        Cancelar
+                      </button>
+                    }
+                  </div>
+                </form>
+              </section>
+            } @else {
+              <div class="actions section-actions">
+                <button class="secondary" (click)="farmEditorOpen = true; farmSetupStep = 0">
+                  Editar datos básicos</button
+                ><button class="text-action" (click)="goProduction('parametros')">
+                  Completar otros datos de la finca →
+                </button>
+              </div>
+            }
+            @if (f.perfil_completo) {
+              <div class="section-heading">
+                <div>
+                  <h2>Mis lotes</h2>
+                  <p>Divide tu finca en lugares que puedas reconocer.</p>
+                </div>
+                <button (click)="startPlot()" [disabled]="busy()">Añadir lote</button>
+              </div>
+              @if (plotEditorOpen) {
+                <section class="card form-card">
+                  <h3>{{ editPlotId ? 'Editar lote' : 'Nuevo lote' }}</h3>
+                  <form #plotEditor="ngForm" (ngSubmit)="savePlot()">
+                    <div class="form-grid">
+                      <label
+                        >¿Cómo llamas a este lote?<input
+                          name="plot-name"
+                          [(ngModel)]="plotForm.nombre"
+                          placeholder="Ej. El potrero de arriba"
+                          maxlength="255"
+                          required /></label
+                      ><label
+                        >¿Cuántas hectáreas tiene?<input
+                          name="plot-area"
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          [(ngModel)]="plotForm.hectareas"
+                          required
+                      /></label>
+                    </div>
+                    <p class="hint">
+                      El cultivo se registra en el siguiente paso. Así puedes cambiar de siembra sin
+                      perder el historial del lote.
+                    </p>
+                    <div class="actions">
+                      <button [disabled]="plotEditor.invalid || busy()">Guardar lote</button
+                      ><button
+                        type="button"
+                        class="secondary"
+                        (click)="plotEditorOpen = false; resetPlot()"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                </section>
+              }
+              <div class="lot-grid">
+                @for (l of activePlots(); track l.id) {
+                  <article class="card lot-card">
+                    <small>LOTE</small>
+                    <h3>{{ l.nombre }}</h3>
+                    <p>{{ l.hectareas | number: '1.0-2' }} hectáreas</p>
+                    <div class="actions">
+                      <button (click)="contextForPlot(l.id); goProduction('cultivos')">
+                        Ver sus cultivos</button
+                      ><button class="text-action" (click)="editPlot(l)">Editar lote</button>
+                    </div>
+                  </article>
+                } @empty {
+                  <section class="empty-state">
+                    <h3>Tu primer lote empieza aquí</h3>
+                    <p>
+                      Necesitas solamente un nombre y su superficie. Después añadirás el cultivo.
+                    </p>
+                    <button (click)="startPlot()">Crear mi primer lote</button>
+                  </section>
+                }
+              </div>
+              <details class="card">
+                <summary>Fotos, mediciones y otros datos</summary>
+                <p>Consulta información complementaria cuando la necesites.</p>
+                <div class="actions">
+                  <button class="secondary" (click)="selectTab('evidencia')">Fotos y notas</button
+                  ><button class="secondary" (click)="selectTab('iot')">Mediciones del lote</button
+                  ><button class="secondary" (click)="goProduction('analisis')">
+                    Análisis de suelo</button
+                  ><button class="secondary" (click)="goProduction('certificaciones')">
+                    Certificados
+                  </button>
+                </div>
+              </details>
+            }
+          } @else {
+            <section class="next-step">
+              <div>
+                <h2>
+                  {{
+                    f.estado === 'rechazado'
+                      ? 'Contacta al administrador para revisar esta finca'
+                      : 'El administrador está revisando esta finca'
+                  }}
+                </h2>
+                <p>No necesitas volver a crearla. El estado se actualizará aquí.</p>
+              </div>
+              <button class="secondary" (click)="loadFarms()">Consultar estado</button>
+            </section>
+          }
+        }
+        <details class="card" [open]="requestFarmOpen || !farms().length">
+          <summary>{{ farms().length ? '¿Tienes otra finca?' : 'Vincular mi finca' }}</summary>
+          <p>
+            Registra el nombre una sola vez. El administrador aprobará la vinculación; después tú
+            completarás la ubicación y el tamaño.
+          </p>
+          <form #requestForm="ngForm" (ngSubmit)="requestFarm()">
+            <label
+              >Nombre de la finca<input
+                name="new-farm"
+                [(ngModel)]="newFarm"
+                required
+                maxlength="255" /></label
+            ><button [disabled]="requestForm.invalid || busy()">Solicitar vinculación</button>
+          </form>
+        </details>
+      }
+      @case ('lotes') {
+        <section class="next-step">
+          <div>
+            <h2>Los lotes están dentro de Mi finca</h2>
+            <p>Organiza la finca y sus lotes desde el mismo recorrido.</p>
+          </div>
+          <button (click)="selectTab('fincas')">Ir a mis lotes</button>
+        </section>
+      }
+      @case ('iot') {
+        <p>
+          <button class="text-action" (click)="selectTab('fincas')">← Volver a mi finca</button>
+        </p>
+        <section class="card">
+          <label
+            >Lote<select [(ngModel)]="plotId" (ngModelChange)="changePlot()">
+              @for (l of activePlots(); track l.id) {
+                <option [ngValue]="l.id">{{ l.nombre }}</option>
+              }
+            </select></label
+          >
+          <h2>Mediciones registradas</h2>
+          <p>Datos enviados por sensores o tomados en el campo.</p>
+          <div class="form-grid">
+            <label>Desde<input type="date" [(ngModel)]="filters.desde" /></label
+            ><label>Hasta<input type="date" [(ngModel)]="filters.hasta" /></label>
+          </div>
+          <button class="secondary" (click)="loadDetails()" [disabled]="!plotId">Consultar</button>
+          @for (r of readings()?.data; track r.id) {
+            <article class="record">
+              <strong>{{ label(r.tipo_medicion) }}: {{ r.valor }} {{ r.unidad }}</strong
+              ><small>{{ r.fecha_medicion | date: 'medium' : '-0500' }}</small>
+            </article>
+          } @empty {
+            <p class="empty">Todavía no hay mediciones para este lote.</p>
+          }
+          @if (readings(); as page) {
+            <div class="pager">
+              <button
+                class="secondary"
+                [disabled]="page.current_page <= 1"
+                (click)="loadDetails(1, page.current_page - 1)"
+              >
+                Anterior</button
+              ><span>Página {{ page.current_page }} de {{ page.last_page }}</span
+              ><button
+                class="secondary"
+                [disabled]="page.current_page >= page.last_page"
+                (click)="loadDetails(1, page.current_page + 1)"
+              >
+                Siguiente
+              </button>
+            </div>
+          }
+        </section>
+        <details class="card">
+          <summary>Añadir una medición manual</summary>
+          <form #readingEditor="ngForm" (ngSubmit)="saveReading()">
+            <fieldset [disabled]="!availablePlot() || busy()">
+              <div class="form-grid">
+                <label
+                  >¿Qué mediste?<select
+                    name="measurement"
+                    [(ngModel)]="readingForm.tipo_medicion"
+                    (ngModelChange)="readingUnit()"
+                  >
+                    @for (t of measurementTypes; track t) {
+                      <option [value]="t">{{ label(t) }}</option>
+                    }
+                  </select></label
+                ><label
+                  >Valor ({{ readingForm.unidad }})<input
+                    name="reading-value"
+                    type="number"
+                    step="any"
+                    [(ngModel)]="readingForm.valor"
+                    required /></label
+                ><label
+                  >Fecha y hora<input
+                    name="reading-time"
+                    type="datetime-local"
+                    [(ngModel)]="readingForm.fecha_medicion"
+                    required /></label
+                ><label
+                  >Observación<input
+                    name="reading-note"
+                    [(ngModel)]="readingForm.motivo"
+                    maxlength="1000"
+                    required
+                /></label>
+              </div>
+              <button [disabled]="readingEditor.invalid || busy()">Guardar medición</button>
+            </fieldset>
+          </form>
+        </details>
+      }
+      @case ('evidencia') {
+        <p>
+          <button class="text-action" (click)="selectTab('fincas')">← Volver a mi finca</button>
+        </p>
+        <section class="card">
+          <h2>Fotos y notas de la finca</h2>
+          <p>
+            Para adjuntar fotos a una actividad o cosecha concreta, ábrela desde Trabajo del día.
+          </p>
+          <div class="form-grid">
+            <label
+              >Guardar en<select
+                [(ngModel)]="mediaForm.modelo_tipo"
+                (ngModelChange)="mediaTarget()"
+              >
+                <option value="finca">Mi finca</option>
+                <option value="lote">Un lote</option>
+              </select></label
+            >
+            @if (mediaForm.modelo_tipo === 'lote') {
+              <label
+                >Lote<select [(ngModel)]="plotId" (ngModelChange)="changePlot()">
+                  @for (l of activePlots(); track l.id) {
+                    <option [ngValue]="l.id">{{ l.nombre }}</option>
+                  }
+                </select></label
+              >
+            }
+          </div>
+          <form (ngSubmit)="saveEvidence()">
+            <fieldset [disabled]="!operational() || busy()">
+              <label
+                >¿Qué quieres recordar?<textarea
+                  name="note"
+                  [(ngModel)]="mediaForm.texto"
+                  (ngModelChange)="saveDraft()"
+                  maxlength="10000"
+                  placeholder="Describe lo que observaste…"
+                ></textarea></label
+              ><label
+                >Añadir foto, audio, video o documento<input
+                  #evidenceFile
+                  type="file"
+                  (change)="chooseFile($event)"
+              /></label>
+              <div class="actions">
+                <button
+                  [disabled]="!mediaForm.modelo_id || (!mediaForm.texto.trim() && !file) || busy()"
+                >
+                  Guardar</button
+                ><button type="button" class="secondary" (click)="captureLocation()">
+                  Añadir ubicación
+                </button>
+              </div>
+            </fieldset>
+          </form>
+        </section>
+        <section class="card">
+          <h2>Lo que has guardado</h2>
+          @for (a of evidence()?.data; track a.id) {
+            <article class="record">
+              <p>{{ a.contenido_texto || label(a.tipo_archivo) }}</p>
+              <small>{{ a.created_at | date: 'medium' : '-0500' }}</small>
+              @if (a.ruta_archivo) {
+                <button class="secondary" (click)="openEvidence(a)">Ver archivo</button>
+              }
+            </article>
+          } @empty {
+            <p>Todavía no has guardado fotos o notas en este lugar.</p>
+          }
+          @if (evidence(); as page) {
+            <div class="pager">
+              <button
+                class="secondary"
+                [disabled]="page.current_page <= 1"
+                (click)="loadEvidence(page.current_page - 1)"
+              >
+                Anterior</button
+              ><span>Página {{ page.current_page }} de {{ page.last_page }}</span
+              ><button
+                class="secondary"
+                [disabled]="page.current_page >= page.last_page"
+                (click)="loadEvidence(page.current_page + 1)"
+              >
+                Siguiente
+              </button>
+            </div>
+          }
+        </section>
+        @if (preview()) {
+          <section class="card preview">
+            <button class="secondary" (click)="closePreview()">Cerrar archivo</button>
+            @if (previewType().startsWith('image/')) {
+              <img [src]="preview()" alt="Foto guardada en la finca" />
+            } @else if (previewType().startsWith('audio/')) {
+              <audio [src]="preview()" controls></audio>
+            } @else if (previewType().startsWith('video/')) {
+              <video [src]="preview()" controls></video>
+            } @else {
+              <a [href]="preview()" download>Descargar documento</a>
+            }
+          </section>
+        }
+      }
+      @case ('perfil') {
+        <section class="card form-card">
+          <h2>Mis datos de contacto</h2>
+          <p>El administrador gestiona el acceso. Aquí puedes actualizar cómo te contactan.</p>
+          <form #profileEditor="ngForm" (ngSubmit)="saveProfile()">
+            <label
+              >Nombre<input
+                name="profile-name"
+                [(ngModel)]="profileName"
+                maxlength="255"
+                required /></label
+            ><label
+              >Teléfono<input
+                name="phone"
+                type="tel"
+                [(ngModel)]="profilePhone"
+                maxlength="30" /></label
+            ><label>Correo<input [value]="auth.currentUser()?.email" readonly /></label
+            ><button [disabled]="profileEditor.invalid || busy()">Guardar perfil</button>
+          </form>
+        </section>
+        @if (profile()?.registration; as r) {
+          <details class="card">
+            <summary>Datos con los que te registraste</summary>
+            <dl>
+              <div>
+                <dt>Documento</dt>
+                <dd>{{ r.id_type }} {{ r.id_number }}</dd>
+              </div>
+              <div>
+                <dt>Ubicación</dt>
+                <dd>{{ r.city }}, {{ r.department }}</dd>
+              </div>
+              <div>
+                <dt>Estado</dt>
+                <dd>{{ r.status === 'approved' ? 'Acceso aprobado' : r.status }}</dd>
+              </div>
+            </dl>
+          </details>
+        }
+        <section class="card">
+          <h2>Mi contraseña</h2>
+          <p>Usa una contraseña que solo tú conozcas.</p>
+          <a class="button secondary" routerLink="/auth/change-password">Cambiar mi contraseña</a>
+        </section>
+      }
+    }
+  </main>
+</div>

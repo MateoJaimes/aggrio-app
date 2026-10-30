@@ -30,7 +30,7 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"]
+            "styles": ["../public/css/aggrio-theme.css", "src/styles.scss"]
           },
           "configurations": {
             "production": {

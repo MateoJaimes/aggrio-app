@@ -4,6 +4,9 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  phone?: string | null;
+  must_change_password?: boolean;
+  account_status?: 'active' | 'suspended';
   role: UserRole | null;
   is_superadmin: boolean;
   two_factor_enabled: boolean;
@@ -12,7 +15,8 @@ export interface User {
 /** Par de tokens que entrega el backend al completar el login (RF004). */
 export interface TokenPair {
   access_token: string;
-  refresh_token: string;
+  refresh_token?: string;
+  csrf_token?: string;
   token_type: string;
   expires_in: number;
   expires_at: string;

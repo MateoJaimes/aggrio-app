@@ -1,0 +1,337 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+  color: var(--aggrio-ink);
+  background: var(--aggrio-page-background);
+}
+.field-shell {
+  display: flex;
+  min-height: 100dvh;
+}
+main {
+  flex: 1;
+  min-width: 0;
+  max-width: 1440px;
+  padding: clamp(1.1rem, 3vw, 2.5rem);
+  margin: 0 auto;
+}
+.page-heading,
+.section-heading,
+.next-step,
+.ready-banner,
+.farm-overview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+.page-heading {
+  margin-bottom: 1.75rem;
+}
+h1 {
+  font-size: clamp(1.9rem, 3vw, 2.5rem);
+  letter-spacing: -0.04em;
+  margin: 0.25rem 0;
+}
+h2 {
+  font-size: 1.25rem;
+  margin: 0.2rem 0 0.6rem;
+}
+h3 {
+  margin: 0.35rem 0 0.6rem;
+}
+p {
+  color: var(--aggrio-muted);
+  line-height: 1.65;
+}
+small {
+  display: block;
+  color: var(--aggrio-muted);
+  font-size: 0.8rem;
+}
+.eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin: 0;
+}
+.card,
+.next-step,
+.ready-banner,
+.farm-overview,
+.empty-state {
+  background: var(--aggrio-surface);
+  border: 1px solid var(--aggrio-border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.next-step {
+  border-left: 4px solid var(--aggrio-primary);
+}
+.next-step > div {
+  flex: 1;
+}
+.step-number {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  background: var(--aggrio-primary-soft);
+  border-radius: 50%;
+  font-weight: 800;
+  color: var(--aggrio-link);
+}
+button,
+a.button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 48px;
+  padding: 0.75rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: 0.7rem;
+  font: inherit;
+  font-weight: 750;
+  color: white;
+  background: var(--aggrio-primary-dark);
+  cursor: pointer;
+  text-decoration: none;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.secondary {
+  color: var(--aggrio-ink);
+  background: var(--aggrio-surface-muted);
+  border-color: var(--aggrio-border);
+}
+button.text-action {
+  color: var(--aggrio-link);
+  background: transparent;
+  padding-inline: 0.35rem;
+}
+a {
+  color: var(--aggrio-link);
+  text-underline-offset: 0.2em;
+}
+.task-section {
+  margin: 2rem 0;
+}
+.task-grid,
+.lot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+button.task-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+  min-height: 185px;
+  text-align: left;
+  padding: 1.3rem;
+  color: var(--aggrio-ink);
+  background: var(--aggrio-surface);
+  border-color: var(--aggrio-border);
+}
+.task-card:hover:not(:disabled) {
+  border-color: var(--aggrio-primary);
+}
+.task-card strong {
+  font-size: 1.05rem;
+}
+.task-card > span:not(.task-icon) {
+  color: var(--aggrio-muted);
+  font-size: 0.88rem;
+  font-weight: 400;
+}
+.task-icon {
+  font-size: 0.75rem;
+  color: var(--aggrio-link);
+  font-weight: 800;
+}
+.task-card b {
+  position: absolute;
+  top: 1rem;
+  right: 1.2rem;
+  color: var(--aggrio-muted);
+}
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--aggrio-border);
+}
+.summary-strip span {
+  color: var(--aggrio-muted);
+  font-size: 0.85rem;
+}
+.summary-strip strong {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 1.4rem;
+  overflow-wrap: anywhere;
+}
+.hint {
+  font-size: 0.82rem;
+}
+.help-line {
+  margin: 2rem 0;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.form-card {
+  max-width: 760px;
+}
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-weight: 650;
+}
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.8rem;
+  border: 1px solid var(--aggrio-border);
+  border-radius: 0.65rem;
+  color: var(--aggrio-ink);
+  background: var(--aggrio-control-background);
+  font: inherit;
+}
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.farm-switch {
+  min-width: 200px;
+  margin: 0;
+}
+.actions,
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+.section-actions {
+  margin-bottom: 2rem;
+}
+.farm-overview strong {
+  display: block;
+  font-size: 1.4rem;
+  margin-top: 0.5rem;
+}
+.section-heading {
+  margin: 2rem 0 1rem;
+}
+.lot-grid .card {
+  margin-bottom: 0;
+}
+.lot-grid {
+  margin-bottom: 1.5rem;
+}
+.status {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  border-radius: 1rem;
+  color: var(--aggrio-success);
+  background: var(--aggrio-success-background);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.status.warning {
+  color: var(--aggrio-warning);
+  background: var(--aggrio-warning-background);
+}
+.notice,
+.error {
+  padding: 1rem;
+  border: 1px solid var(--aggrio-border);
+  border-radius: 0.75rem;
+  background: var(--aggrio-primary-soft);
+  color: var(--aggrio-ink);
+}
+.error {
+  color: var(--aggrio-danger);
+  border-color: var(--aggrio-danger-border);
+  background: var(--aggrio-danger-background);
+}
+summary {
+  cursor: pointer;
+  font-weight: 750;
+  padding-block: 0.3rem;
+}
+details[open] > summary {
+  margin-bottom: 1rem;
+}
+.record {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--aggrio-border);
+}
+.preview img,
+.preview video {
+  max-width: 100%;
+  max-height: 500px;
+}
+dl div {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--aggrio-border);
+}
+dt {
+  color: var(--aggrio-muted);
+}
+dd {
+  margin: 0;
+}
+@media (max-width: 1100px) {
+  .task-grid,
+  .lot-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 980px) {
+  .field-shell {
+    flex-direction: column;
+  }
+}
+@media (max-width: 600px) {
+  .page-heading,
+  .section-heading,
+  .next-step,
+  .ready-banner,
+  .farm-overview {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .task-grid,
+  .lot-grid,
+  .form-grid,
+  .summary-strip {
+    grid-template-columns: 1fr;
+  }
+  button.task-card {
+    min-height: 145px;
+  }
+  .farm-switch {
+    width: 100%;
+  }
+}

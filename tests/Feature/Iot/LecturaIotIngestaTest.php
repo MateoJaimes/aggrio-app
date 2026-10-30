@@ -71,7 +71,7 @@ class LecturaIotIngestaTest extends TestCase
         }
 
         $this->postJson('/api/iot/lecturas', $this->lectura(['lote_id' => $lote->id, 'valor' => 999999.99]))
-            ->assertCreated();
+            ->assertUnprocessable();
     }
 
     public function test_rechaza_lotes_de_fincas_no_aprobadas_o_inexistentes_con_el_mismo_mensaje(): void

@@ -24,6 +24,8 @@ export class TwoFactor implements OnInit {
   readonly setup = signal<TwoFactorSetupPayload | null>(null);
   readonly recoveryCodes = signal<string[]>([]);
   readonly code = signal('');
+  readonly rememberDevice = signal(false);
+  deviceName = '';
   readonly useRecoveryCode = signal(false);
   readonly isLoading = signal(false);
   readonly error = signal('');
@@ -53,11 +55,12 @@ export class TwoFactor implements OnInit {
 
     const value = this.code().trim();
 
-    const request$ = this.step() === 'enroll'
-      ? this.auth.confirmTwoFactorSetup(value)
-      : this.useRecoveryCode()
-        ? this.auth.verifyRecoveryCode(value)
-        : this.auth.verifyTwoFactorCode(value);
+    const request$ =
+      this.step() === 'enroll'
+        ? this.auth.confirmTwoFactorSetup(value, this.rememberDevice(), this.deviceName)
+        : this.useRecoveryCode()
+          ? this.auth.verifyRecoveryCode(value, this.rememberDevice(), this.deviceName)
+          : this.auth.verifyTwoFactorCode(value, this.rememberDevice(), this.deviceName);
 
     request$.subscribe({
       next: (payload) => this.onVerified(payload),
@@ -75,7 +78,7 @@ export class TwoFactor implements OnInit {
   }
 
   finish(): void {
-    void this.router.navigate(['/estates']);
+    void this.router.navigate(['/dashboard']);
   }
 
   backToLogin(): void {

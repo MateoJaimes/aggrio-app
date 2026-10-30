@@ -11,6 +11,10 @@ export class MultimediaAdminService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/admin/archivos-multimedia`;
 
+  downloadArchivo(id: number): Observable<Blob> {
+    return this.http.get(`${environment.apiUrl}/campo/archivos/${id}/descargar`, { responseType: 'blob' });
+  }
+
   getArchivos(userId?: number): Observable<ApiResponse<ArchivoMultimedia[]>> {
     const params = userId ? new HttpParams().set('user_id', userId) : undefined;
 
@@ -21,11 +25,11 @@ export class MultimediaAdminService {
     return this.http.get<ApiResponse<ArchivoMultimedia>>(`${this.baseUrl}/${id}`);
   }
 
-  updateArchivo(id: number, payload: ArchivoMultimediaPayload): Observable<ApiResponse<ArchivoMultimedia>> {
-    return this.http.put<ApiResponse<ArchivoMultimedia>>(`${this.baseUrl}/${id}`, payload);
+  updateArchivo(id: number, payload: ArchivoMultimediaPayload, motivo: string): Observable<ApiResponse<ArchivoMultimedia>> {
+    return this.http.put<ApiResponse<ArchivoMultimedia>>(`${this.baseUrl}/${id}`, { ...payload, motivo });
   }
 
-  deleteArchivo(id: number): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/${id}`);
+  deleteArchivo(id: number, motivo: string): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/${id}`, { body: { motivo } });
   }
 }

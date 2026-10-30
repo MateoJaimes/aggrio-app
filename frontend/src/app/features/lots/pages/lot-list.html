@@ -66,7 +66,7 @@
                   <td>{{ lote.created_at ? (lote.created_at | date:'dd/MM/yyyy') : '—' }}</td>
                   <td class="actions">
                     <a [routerLink]="['/lots', lote.id, 'edit']">Editar</a>
-                    <button class="delete" type="button" (click)="deleteLote(lote)" [disabled]="deletingId() === lote.id">{{ deletingId() === lote.id ? 'Eliminando…' : 'Eliminar' }}</button>
+                    <button class="delete" type="button" (click)="deleteLote(lote)" [disabled]="deletingId() === lote.id">{{ deletingId() === lote.id ? 'Archivando…' : 'Archivar' }}</button>
                   </td>
                 </tr>
               } @empty {

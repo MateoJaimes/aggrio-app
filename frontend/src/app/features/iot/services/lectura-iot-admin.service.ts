@@ -38,11 +38,11 @@ export class LecturaIotAdminService {
     return this.http.post<ApiResponse<LecturaIot>>(this.baseUrl, payload);
   }
 
-  updateLectura(id: number, payload: LecturaIotPayload): Observable<ApiResponse<LecturaIot>> {
-    return this.http.put<ApiResponse<LecturaIot>>(`${this.baseUrl}/${id}`, payload);
+  updateLectura(id: number, payload: LecturaIotPayload, motivo: string): Observable<ApiResponse<LecturaIot>> {
+    return this.http.put<ApiResponse<LecturaIot>>(`${this.baseUrl}/${id}`, { ...payload, motivo });
   }
 
-  deleteLectura(id: number): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/${id}`);
+  deleteLectura(id: number, motivo: string): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/${id}`, { body: { motivo } });
   }
 }

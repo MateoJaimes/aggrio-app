@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AccessRequest;
 use App\Models\Actividad;
 use App\Models\Finca;
 use App\Models\LecturaIot;
 use App\Models\Lote;
+use App\Models\User;
+use App\Services\ProductionReport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -97,6 +100,8 @@ class DashboardApiController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
+                'onboarding' => ['productores' => User::where('role', 'productor')->count(), 'solicitudes_pendientes' => AccessRequest::whereIn('status', ['pending', 'waitlisted'])->count()],
+                'produccion' => array_intersect_key(app(ProductionReport::class)->build($request), array_flip(['costos_produccion', 'inversion', 'ventas', 'cobrado', 'resultado', 'margen_porcentaje'])),
                 'kpis' => [
                     'fincas' => Finca::query()->count(),
                     'lotes_activos' => (clone $activeLots)->count(),

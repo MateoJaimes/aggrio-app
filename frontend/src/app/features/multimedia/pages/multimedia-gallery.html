@@ -44,8 +44,8 @@
           @for (archivo of visibleArchivos(); track archivo.id) {
             <article class="evidence-card">
               <div class="media-preview">
-                @if (isImage(archivo) && archivo.url_archivo) {
-                  <img [src]="archivo.url_archivo" [alt]="'Archivo de ' + ownerName(archivo)" />
+                @if (isImage(archivo)) {
+                  <span class="media-icon" aria-hidden="true">▧</span><span>Imagen privada</span>
                 } @else if (isVideo(archivo)) {
                   <span class="media-icon">🎬</span>
                   <span>Video</span>
@@ -72,7 +72,7 @@
                 <div class="card-meta"><span>{{ archivo.created_at ? (archivo.created_at | date:'dd/MM/yyyy, HH:mm') : 'Sin fecha' }}</span><span>{{ formatSize(archivo.peso_bytes) }}</span></div>
                 <div class="card-actions">
                   <button type="button" class="details" (click)="openDetails(archivo)">Ver y administrar</button>
-                  <button type="button" class="delete" (click)="deleteArchivo(archivo)" [disabled]="deletingId() === archivo.id">{{ deletingId() === archivo.id ? 'Eliminando…' : 'Eliminar' }}</button>
+                  <button type="button" class="delete" (click)="deleteArchivo(archivo)" [disabled]="deletingId() === archivo.id">{{ deletingId() === archivo.id ? 'Archivando…' : 'Archivar' }}</button>
                 </div>
               </div>
             </article>
@@ -98,20 +98,20 @@
 
       <div class="detail-grid">
         <section class="preview-pane">
-          @if (isImage(archivo) && archivo.url_archivo) {
-            <img [src]="archivo.url_archivo" [alt]="'Archivo de ' + ownerName(archivo)" />
-          } @else if (isVideo(archivo) && archivo.url_archivo) {
-            <video controls [src]="archivo.url_archivo">Tu navegador no puede reproducir este video.</video>
-          } @else if (isAudio(archivo) && archivo.url_archivo) {
-            <audio controls [src]="archivo.url_archivo">Tu navegador no puede reproducir este audio.</audio>
+          @if (isImage(archivo) && previewUrl()) {
+            <img [src]="previewUrl()" [alt]="'Archivo de ' + ownerName(archivo)" />
+          } @else if (isVideo(archivo) && previewUrl()) {
+            <video controls [src]="previewUrl()">Tu navegador no puede reproducir este video.</video>
+          } @else if (isAudio(archivo) && previewUrl()) {
+            <audio controls [src]="previewUrl()">Tu navegador no puede reproducir este audio.</audio>
           } @else if (isTextNote(archivo)) {
             <article class="text-note">{{ archivo.contenido_texto || 'Esta nota no contiene texto.' }}</article>
           } @else {
             <div class="file-placeholder"><span>📎</span><p>Vista previa no disponible para este formato.</p></div>
           }
 
-          @if (archivo.url_archivo) {
-            <a class="open-file" [href]="archivo.url_archivo" target="_blank" rel="noopener noreferrer">Abrir archivo original</a>
+          @if (previewUrl()) {
+            <a class="open-file" [href]="previewUrl()" target="_blank" rel="noopener noreferrer">Abrir archivo original</a>
           }
         </section>
 

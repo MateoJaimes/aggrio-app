@@ -1,23 +1,29 @@
 # Aggrio
 
+Seguridad del superadmin: [Configuración, aplicaciones autenticadoras y navegadores recordados](docs/configuracion-y-dispositivos.md), disponible en `/configuracion`.
+
+Gestión de producción integrada en `/produccion`: [parametrización, cultivos, ciclos, costos, cosechas, ventas y trazabilidad](docs/produccion-y-rentabilidad.md). Incluye reportes financieros y la paleta principal `#ec1c21`.
+
+Documentación vigente: [cuentas, sesiones y permisos](docs/cuentas-sesiones-y-permisos.md), [implementación de semanas 3 y 4](docs/implementation-weeks-3-4.md) y [diseño compartido](docs/design-system.md). La documentación formal de pruebas se actualizará en la fase posterior.
+
 Plataforma digital de trazabilidad e inteligencia agrícola (sector cacaotero). Centraliza el registro de fincas, lotes, actividades, evidencia multimedia georreferenciada y lecturas de sensores IoT.
 
-Este repositorio contiene el **backend API** (Laravel, en la raíz del repo) y el **frontend** (Angular, en `frontend/`). Angular es la única interfaz de administración; Laravel no expone panel web.
+Este repositorio contiene el **backend API** (Laravel, en la raíz del repo) y el **frontend** (Angular, en `frontend/`). Angular ofrece administración y el espacio propio del productor en `/campo`; Laravel no expone un panel administrativo web.
 
 ## Stack
 
 | Capa | Tecnología |
 | --- | --- |
 | Backend / API REST | Laravel 13 + Sanctum (auth por token Bearer) |
-| Panel de administración | Angular 21 |
-| Almacenamiento de archivos | MinIO (compatible con S3) |
-| Base de datos | MySQL |
+| Interfaz de Superadmin y productor | Angular 21 |
+| Almacenamiento de archivos | Disco local privado o MinIO/S3 configurado |
+| Base de datos | PostgreSQL en el entorno local; conexión configurable |
 
 ## Requisitos previos
 
 - PHP 8.4+ y Composer
 - Node.js 20+ y npm
-- MySQL (o el motor configurado en `.env`)
+- PostgreSQL (o el motor configurado en `.env`)
 - Angular CLI: `npm install -g @angular/cli`
 
 ## Puesta en marcha
@@ -34,7 +40,7 @@ php artisan migrate
 php artisan serve       # API: http://localhost:8000
 ```
 
-Al abrir `http://localhost:8000`, Laravel redirige al login de Angular en `http://localhost:4200/auth/login`. Por eso Angular debe estar levantado también.
+Al abrir `http://localhost:8000`, Laravel muestra la landing con acceso al login de Angular. Angular debe estar levantado también.
 
 ### 2. Frontend (Angular)
 
@@ -44,40 +50,45 @@ npm install
 ng serve                # http://localhost:4200
 ```
 
-Angular usa `proxy.conf.json` para reenviar todo lo que empiece en `/api` hacia `http://localhost:8000`, así en desarrollo nunca hay problemas de CORS ni hay que tocar `config/cors.php` en el backend.
+Angular usa la regla `/api/**` de `proxy.conf.json` para reenviar las rutas de la API hacia `http://127.0.0.1:8000`. Si frontend y API se sirven desde orígenes distintos, configura los orígenes permitidos en el entorno del backend.
 
 Con ambos corriendo: abre `http://localhost:4200`, el login pega contra la API real de Laravel.
 
 ## Cómo se conectan Angular y Laravel
 
-**Angular nunca toca la base de datos directamente.** Solo consume la API REST bajo `/api/*` — la misma que ya usa la app de Flutter.
+**Angular nunca toca la base de datos directamente.** Consume la API REST bajo `/api/*`. El producto actual es web, con panel Superadmin y espacio del productor; no contempla una aplicación móvil independiente.
 
-**La autenticación es por token, no por cookie de sesión.** No usamos el flujo "SPA" de Sanctum (`/sanctum/csrf-cookie`, `withCredentials`). El flujo real es:
+La sesión web sigue este contrato:
 
-1. Angular hace `POST /api/login` con email/contraseña.
-2. Laravel responde con un token Sanctum.
-3. Angular guarda el token y lo manda en cada request como `Authorization: Bearer <token>` (vía `core/auth/auth.interceptor.ts`).
+1. Angular inicia sesión por `/api/web/auth/login`, completa el segundo factor cuando corresponde y conserva el access token solo en memoria.
+2. El refresh web se guarda en una cookie HttpOnly y se renueva con comprobaciones de origen y CSRF. No se devuelve en JSON ni se guarda en el almacenamiento de JavaScript.
+3. Las rutas de datos exigen `Authorization: Bearer`; la cookie de refresh no autentica contra ellas.
+4. Al recargar, Angular restaura la sesión mediante la cookie. El cierre actual o total revoca las sesiones y retira la cookie. Los endpoints legados del servidor no forman parte de un compromiso de producto móvil.
 
-Si alguien del equipo sigue un tutorial de "Angular + Sanctum SPA auth", no le va a funcionar con este backend — es a propósito, para no duplicar lógica con el cliente Flutter, que ya usa este mismo esquema.
+Consulta [cuentas, sesiones y permisos](docs/cuentas-sesiones-y-permisos.md) para los flujos de suspensión, reactivación, recuperación y la configuración HTTPS de producción. En la app, `/guia` explica los permisos por rol y `/accounts` permite al Superadmin administrar productores.
 
-**Subida de multimedia** es el único flujo de tres pasos:
+**Subida de multimedia con URL firmada** mantiene el flujo de tres pasos para los clientes que lo usan:
 
 1. Angular pide una URL prefirmada: `POST /api/minio/presigned-url`.
-2. Angular sube el archivo **directo a MinIO** con esa URL (Laravel nunca recibe los bytes).
-3. Angular registra la metadata en Laravel: `POST /api/multimedia/subir`.
+2. El cliente sube el archivo con esa URL a MinIO/S3, o a la ruta privada firmada si utiliza almacenamiento local.
+3. El cliente finaliza en Laravel con `POST /api/multimedia/subir`; el servidor verifica el objeto real y el ticket antes de registrar.
+
+El espacio Angular del productor también dispone de carga multipart privada por `/api/campo/multimedia/archivo`, con las mismas reglas de verificación y límites.
 
 ## Endpoints de la API (referencia rápida)
 
 | Recurso | Rutas |
 | --- | --- |
-| Auth | `POST /api/login` · `GET /api/me` · `POST /api/logout` · `POST /api/logout-all` |
-| Fincas (estates) | `GET /api/mis-fincas` · `POST /api/fincas/solicitar` · `PUT /api/fincas/{id}/completar` |
-| Lotes (lots) | `GET /api/fincas/{finca_id}/lotes` · `POST /api/fincas/{finca_id}/lotes` · `PATCH /api/lotes/{lote_id}/estado` |
-| Actividades (activities) | `GET /api/lotes/{lote_id}/actividades` · `POST /api/lotes/{lote_id}/actividades` |
+| Auth web | `POST /api/web/auth/login` · `GET /api/me` · `POST /api/web/auth/logout` · `POST /api/web/auth/logout-all` |
+| Renovación y contraseña | `GET /api/web/auth/csrf` · `POST /api/web/auth/refresh` · `PUT /api/web/auth/password` |
+| Cuenta y guía | `GET/PUT /api/campo/perfil` · pantallas `/campo`, `/guia` y `/accounts` según rol |
+| Fincas (estates) | `GET /api/campo/fincas` · `POST /api/fincas/solicitar` · `PUT /api/fincas/{id}/completar` |
+| Lotes (lots) | `GET/POST /api/campo/fincas/{finca}/lotes` · `PUT /api/campo/fincas/{finca}/lotes/{id}` · `DELETE /api/campo/lotes/{id}` archiva |
+| Actividades (activities) | `GET/POST /api/campo/lotes/{lote}/actividades` |
 | Multimedia | `POST /api/minio/presigned-url` · `POST /api/multimedia/subir` · `POST /api/fincas/{id}/multimedia` |
-| IoT | `POST /api/iot/lecturas` (pública, sin token) · `GET /api/lotes/{lote_id}/lecturas` |
+| IoT | `POST /api/iot/lecturas` (identidad técnica `X-Device-Key`; obligatoria en producción) · `GET/POST /api/campo/lotes/{lote}/lecturas` (historia propia y registro manual) |
 
-Cualquier dato que necesites desde Angular y no esté en esta lista **no existe todavía en la API** — hay que crearlo en el backend antes de consumirlo, no inventarlo del lado del cliente.
+Esta tabla resume el contrato web actual. `/api/campo/*` incluye todos los estados de finca, perfil, edición/archivo de lotes, monitoreo paginado, evidencia privada y dashboard propio. El alta pública usa `POST /api/access-requests`. La referencia de implementación y las tareas de cierre están en [Semanas 3 y 4](docs/implementation-weeks-3-4.md).
 
 ## Estructura del frontend
 
@@ -104,7 +115,7 @@ Convenciones:
 
 ## Panel Angular
 
-El panel Angular consume la API de Laravel y concentra las funciones administrativas. Las nuevas funcionalidades deben implementarse allí y exponer únicamente los endpoints de API necesarios.
+Angular contiene el panel administrativo y Mi campo, con navegación y permisos propios de cada rol. Las nuevas funcionalidades se implementan en el espacio correspondiente y se respaldan con autorización en la API.
 
 ## Comandos útiles
 
@@ -114,15 +125,21 @@ ng build                    # build de producción, sale en frontend/dist/
 ng generate component features/estates/pages/estate-list   # scaffolding respetando la convención de naming
 ng test                     # tests unitarios (Vitest)
 php artisan serve            # levantar el backend
-php artisan migrate:fresh --seed   # resetear BD local con datos de prueba
+php artisan migrate               # aplicar migraciones pendientes
 ```
 
 ## Variables de entorno
 
-**Angular** (`frontend/src/environments/`): `apiUrl` apunta a `http://localhost:8000/api` en desarrollo. No hardcodear URLs en los servicios.
+**Angular** (`frontend/src/environments/`): `apiUrl` usa `/api`; el proxy de desarrollo reenvía al backend. En producción el servidor debe reenviar ese prefijo a Laravel. No hardcodear URLs en los servicios.
 
-**Laravel** (`.env`): credenciales de BD, MinIO, `FRONTEND_URL` y las credenciales iniciales `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD`. `config/cors.php` tiene `allowed_origins => ['*']` para desarrollo local — **hay que restringirlo al dominio real antes de pasar a producción**.
+**Laravel** (`.env`): credenciales de BD, almacenamiento, `FRONTEND_URL` y credenciales iniciales `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD`. `CORS_ALLOWED_ORIGINS` acepta orígenes explícitos separados por comas; por defecto utiliza `FRONTEND_URL`. Las contraseñas de BD se obtienen del entorno.
+
+Sin MinIO configurado, la evidencia nueva se guarda en `storage/app/private` y se descarga mediante API autenticada. `EVIDENCE_DISK=s3` habilita MinIO/S3, cuyo bucket debe ser privado. No ejecutar `storage:link` para exponer evidencia privada. Las notas de audio se transcriben mediante trabajos de cola; se requiere `php artisan queue:work --timeout=180 --tries=3` y el proveedor configurado. El scheduler ejecuta la limpieza de cargas abandonadas.
 
 ## Dudas frecuentes
 
 - **¿Dónde reporto que falta un endpoint?** Ábrelo como issue en el repo backend antes de improvisar la lógica en el frontend.
+
+## Recorrido y responsabilidades
+
+Consulta [Recorrido sencillo](docs/recorrido-sencillo.md) para el flujo de aprobación, preparación de finca, lotes, cultivos, trabajo y cuentas, y la separación entre el productor y el superadmin.

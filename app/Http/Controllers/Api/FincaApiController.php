@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Finca;
+use App\Services\EvidenceService;
+use App\Services\FieldAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class FincaApiController extends Controller
 {
@@ -16,12 +19,12 @@ class FincaApiController extends Controller
     {
 
         // CLAVE: Filtramos para que Flutter solo reciba las fincas con luz verde
-        $fincas = $request->user()->fincas()->where('estado', 'aprobado')->get();
+        $fincas = $request->user()->fincas()->orderByDesc('id')->get();
 
         return response()->json([
             'success' => true,
             'message' => 'Fincas recuperadas con éxito',
-            'data'    => $fincas
+            'data' => $fincas,
         ], 200);
     }
 
@@ -30,24 +33,24 @@ class FincaApiController extends Controller
      */
     public function completarPerfil(Request $request, $id): JsonResponse
     {
-       // 1. Validar los datos técnicos de la finca
+        // 1. Validar los datos técnicos de la finca
         $request->validate([
-            'nombre'            => 'sometimes|string|max:255',
-            'latitud'           => 'required|numeric|between:-90,90',
-            'longitud'          => 'required|numeric|between:-180,180',
-            'hectareas_totales' => 'required|numeric|min:0',
-            'tipo_suelo'        => 'nullable|string|max:255',
+            'nombre' => 'sometimes|string|max:255',
+            'latitud' => 'required|numeric|between:-90,90',
+            'longitud' => 'required|numeric|between:-180,180',
+            'hectareas_totales' => 'required|numeric|min:0.01|max:999999.99|decimal:0,2',
+            'tipo_suelo' => 'nullable|string|max:255',
         ]);
 
         // 2. Buscar la finca y asegurar que le pertenezca a este usuario
         $finca = Finca::where('id', $id)
-                      ->where('user_id', $request->user()->id)
-                      ->first();
+            ->where('user_id', $request->user()->id)
+            ->first();
 
-        if (!$finca) {
+        if (! $finca) {
             return response()->json([
                 'success' => false,
-                'message' => 'Finca no encontrada o no tienes permisos para editarla.'
+                'message' => 'Finca no encontrada o no tienes permisos para editarla.',
             ], 404);
         }
 
@@ -55,19 +58,19 @@ class FincaApiController extends Controller
         if ($finca->estado !== 'aprobado') {
             return response()->json([
                 'success' => false,
-                'message' => 'No puedes modificar esta finca porque su estado actual es: ' . $finca->estado
+                'message' => 'No puedes modificar esta finca porque su estado actual es: '.$finca->estado,
             ], 403); // 403 = Prohibido
         }
-        
+
         $finca->update($request->only([
-            'nombre', 'latitud', 'longitud', 'hectareas_totales', 'tipo_suelo'
+            'nombre', 'latitud', 'longitud', 'hectareas_totales', 'tipo_suelo',
         ]));
 
         // 4. Devolver respuesta de éxito
         return response()->json([
             'success' => true,
             'message' => 'Perfil de la finca completado exitosamente',
-            'data'    => $finca
+            'data' => $finca,
         ], 200);
     }
 
@@ -79,7 +82,7 @@ class FincaApiController extends Controller
         if (! $request->user()->isSuperAdmin()) {
             return response()->json([
                 'success' => false,
-                'message' => 'No tienes permisos para acceder a esta funcionalidad.'
+                'message' => 'No tienes permisos para acceder a esta funcionalidad.',
             ], 403);
         }
 
@@ -88,7 +91,7 @@ class FincaApiController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Fincas recuperadas con éxito',
-            'data'    => $fincas,
+            'data' => $fincas,
         ], 200);
     }
 
@@ -100,7 +103,7 @@ class FincaApiController extends Controller
         if (! $request->user()->isSuperAdmin()) {
             return response()->json([
                 'success' => false,
-                'message' => 'No tienes permisos para acceder a esta funcionalidad.'
+                'message' => 'No tienes permisos para acceder a esta funcionalidad.',
             ], 403);
         }
 
@@ -113,14 +116,14 @@ class FincaApiController extends Controller
         if (! $finca) {
             return response()->json([
                 'success' => false,
-                'message' => 'Finca no encontrada.'
+                'message' => 'Finca no encontrada.',
             ], 404);
         }
 
         if ($finca->estado !== 'pendiente') {
             return response()->json([
                 'success' => false,
-                'message' => 'Solo se puede cambiar el estado de fincas en estado pendiente.'
+                'message' => 'Solo se puede cambiar el estado de fincas en estado pendiente.',
             ], 422);
         }
 
@@ -130,7 +133,7 @@ class FincaApiController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Estado de la finca actualizado exitosamente',
-            'data'    => $finca,
+            'data' => $finca,
         ], 200);
     }
 
@@ -142,27 +145,28 @@ class FincaApiController extends Controller
         if (! $request->user()->isSuperAdmin()) {
             return response()->json([
                 'success' => false,
-                'message' => 'No tienes permisos para acceder a esta funcionalidad.'
+                'message' => 'No tienes permisos para acceder a esta funcionalidad.',
             ], 403);
         }
 
         $request->validate([
-            'user_id'           => 'required|exists:users,id',
-            'nombre'            => 'sometimes|string|max:255',
-            'latitud'           => 'required|numeric|between:-90,90',
-            'longitud'          => 'required|numeric|between:-180,180',
-            'hectareas_totales' => 'required|numeric|min:0',
-            'tipo_suelo'        => 'nullable|string|max:255',
+            'user_id' => ['required', Rule::exists('users', 'id')->where('role', 'productor')],
+            'nombre' => 'sometimes|string|max:255',
+            'latitud' => 'required|numeric|between:-90,90',
+            'longitud' => 'required|numeric|between:-180,180',
+            'hectareas_totales' => 'required|numeric|min:0.01|max:999999.99|decimal:0,2',
+            'tipo_suelo' => 'nullable|string|max:255',
         ]);
 
+        app(FieldAccess::class)->approvedProducer((int) $request->user_id);
         $finca = Finca::create($request->only([
-            'user_id', 'nombre', 'latitud', 'longitud', 'hectareas_totales', 'tipo_suelo'
+            'user_id', 'nombre', 'latitud', 'longitud', 'hectareas_totales', 'tipo_suelo',
         ]));
 
         return response()->json([
             'success' => true,
             'message' => 'Finca creada exitosamente',
-            'data'    => $finca->load('user'),
+            'data' => $finca->load('user'),
         ], 201);
     }
 
@@ -174,17 +178,17 @@ class FincaApiController extends Controller
         if (! $request->user()->isSuperAdmin()) {
             return response()->json([
                 'success' => false,
-                'message' => 'No tienes permisos para acceder a esta funcionalidad.'
+                'message' => 'No tienes permisos para acceder a esta funcionalidad.',
             ], 403);
         }
 
         $request->validate([
-            'user_id'           => 'required|exists:users,id',
-            'nombre'            => 'sometimes|string|max:255',
-            'latitud'           => 'required|numeric|between:-90,90',
-            'longitud'          => 'required|numeric|between:-180,180',
-            'hectareas_totales' => 'required|numeric|min:0',
-            'tipo_suelo'        => 'nullable|string|max:255',
+            'user_id' => ['required', Rule::exists('users', 'id')->where('role', 'productor')],
+            'nombre' => 'sometimes|string|max:255',
+            'latitud' => 'required|numeric|between:-90,90',
+            'longitud' => 'required|numeric|between:-180,180',
+            'hectareas_totales' => 'required|numeric|min:0.01|max:999999.99|decimal:0,2',
+            'tipo_suelo' => 'nullable|string|max:255',
         ]);
 
         $finca = Finca::find($id);
@@ -192,18 +196,19 @@ class FincaApiController extends Controller
         if (! $finca) {
             return response()->json([
                 'success' => false,
-                'message' => 'Finca no encontrada.'
+                'message' => 'Finca no encontrada.',
             ], 404);
         }
 
+        app(FieldAccess::class)->approvedProducer((int) $request->user_id);
         $finca->update($request->only([
-            'user_id', 'nombre', 'latitud', 'longitud', 'hectareas_totales', 'tipo_suelo'
+            'user_id', 'nombre', 'latitud', 'longitud', 'hectareas_totales', 'tipo_suelo',
         ]));
 
         return response()->json([
             'success' => true,
             'message' => 'Finca actualizada exitosamente',
-            'data'    => $finca->fresh()->load('user'),
+            'data' => $finca->fresh()->load('user'),
         ], 200);
     }
 
@@ -212,53 +217,15 @@ class FincaApiController extends Controller
      */
     public function subirMultimedia(Request $request, $id): JsonResponse
     {
-        // 1. Validar que venga un archivo y el tipo de archivo (máx 10MB)
-        $request->validate([
-            'archivo'      => 'required|file|mimes:jpg,jpeg,png,mp3,wav,mp4,m4a|max:10240',
-            'tipo_archivo' => 'required|string', // Ej: 'foto_finca', 'foto_plaga', 'nota_audio'
-        ]);
+        $request->merge(['modelo_tipo' => 'finca', 'modelo_id' => (int) $id]);
 
-        // 2. Verificar que la finca existe y pertenece al usuario autenticado
-        $finca = Finca::where('id', $id)
-                      ->where('user_id', $request->user()->id)
-                      ->first();
-
-        if (!$finca) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Finca no encontrada o sin permisos.'
-            ], 404);
-        }
-
-        // 3. Procesar el archivo
-        if ($request->hasFile('archivo')) {
-            // Guardar físicamente el archivo en la carpeta public/fincas
-            $path = $request->file('archivo')->store('fincas', 'public');
-
-            // 4. Registrar el archivo en la base de datos (Magia Polimórfica)
-            $multimedia = $finca->archivos()->create([
-                'ruta_archivo' => $path,
-                'tipo_archivo' => $request->tipo_archivo,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Archivo subido correctamente al Data Lake',
-                'data'    => [
-                    'id'   => $multimedia->id,
-                    'url'  => asset('storage/' . $path), // Genera el link público para Flutter
-                    'tipo' => $multimedia->tipo_archivo
-                ]
-            ], 201);
-        }
-
-        return response()->json(['success' => false, 'message' => 'Error al recibir el archivo'], 400);
+        return response()->json(['success' => true, 'data' => app(EvidenceService::class)->upload($request)], 201);
     }
 
     /**
      * Solicitar una nueva finca (Nace en estado 'pendiente')
      */
-    public function solicitar(Request $request): \Illuminate\Http\JsonResponse
+    public function solicitar(Request $request): JsonResponse
     {
         // Validamos que al menos envíe un nombre tentativo para la finca
         $request->validate([
@@ -266,16 +233,16 @@ class FincaApiController extends Controller
         ]);
 
         // Creamos la finca amarrada al usuario actual, explicitando el estado pendiente
-        $finca = \App\Models\Finca::create([
+        $finca = Finca::create([
             'user_id' => $request->user()->id,
-            'nombre'  => $request->nombre,
-            'estado'  => 'pendiente', // 🚀 Clave: Nace bloqueada
+            'nombre' => $request->nombre,
+            'estado' => 'pendiente', // 🚀 Clave: Nace bloqueada
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Solicitud de finca creada con éxito. En espera de aprobación del administrador.',
-            'data'    => $finca
+            'data' => $finca,
         ], 201);
     }
 }

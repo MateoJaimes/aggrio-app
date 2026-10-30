@@ -13,12 +13,36 @@
     }
 
     <!-- Alta del TOTP: sólo la primera vez -->
+    @if (step() !== 'recovery-codes') {
+      <label style="display: flex; align-items: center; gap: 0.65rem; margin: 1rem 0"
+        ><input
+          type="checkbox"
+          style="width: 1.1rem; min-height: auto"
+          name="remember-device"
+          [ngModel]="rememberDevice()"
+          (ngModelChange)="rememberDevice.set($event)"
+        />Recordar este navegador durante 30 días</label
+      >
+      @if (rememberDevice()) {
+        <div class="field">
+          <label for="device-name">Nombre del equipo (opcional)</label
+          ><input
+            id="device-name"
+            name="device-name"
+            [(ngModel)]="deviceName"
+            maxlength="100"
+            placeholder="Ej. Mi portátil"
+          />
+        </div>
+        <p class="hint">Úsalo en tu equipo personal. Podrás revocarlo desde Configuración.</p>
+      }
+    }
     @if (step() === 'enroll') {
       <p class="eyebrow">Paso 1 de 2</p>
       <h1>Configura tu segundo factor</h1>
       <p class="subtitle">
-        Tu cuenta de Superadmin requiere verificación en dos pasos. Escanea el código
-        con Google Authenticator, Authy o 1Password.
+        Tu cuenta de Superadmin requiere verificación en dos pasos. Escanea el código con Google
+        Authenticator, Authy o 1Password.
       </p>
 
       @if (setup(); as data) {
@@ -59,14 +83,18 @@
       <p class="eyebrow">Paso 2 de 2</p>
       <h1>Verifica tu identidad</h1>
       <p class="subtitle">
-        {{ useRecoveryCode()
+        {{
+          useRecoveryCode()
             ? 'Escribe uno de los códigos de recuperación que guardaste.'
-            : 'Escribe el código que muestra tu aplicación autenticadora.' }}
+            : 'Escribe el código que muestra tu aplicación autenticadora.'
+        }}
       </p>
 
       <form (ngSubmit)="submit()">
         <div class="field">
-          <label for="verify-code">{{ useRecoveryCode() ? 'Código de recuperación' : 'Código de 6 dígitos' }}</label>
+          <label for="verify-code">{{
+            useRecoveryCode() ? 'Código de recuperación' : 'Código de 6 dígitos'
+          }}</label>
           <input
             id="verify-code"
             name="verify-code"
@@ -91,7 +119,11 @@
 
       <p class="foot">
         <button class="linkish" type="button" (click)="toggleRecoveryCode()">
-          {{ useRecoveryCode() ? 'Usar el código de mi aplicación' : '¿Perdiste tu teléfono? Usa un código de recuperación' }}
+          {{
+            useRecoveryCode()
+              ? 'Usar el código de mi aplicación'
+              : '¿Perdiste tu teléfono? Usa un código de recuperación'
+          }}
         </button>
       </p>
     }
@@ -101,8 +133,8 @@
       <p class="eyebrow">Listo</p>
       <h1>Guarda tus códigos de recuperación</h1>
       <p class="subtitle">
-        Cada código sirve una sola vez y te permite entrar si pierdes acceso a tu
-        teléfono. <strong>No volverán a mostrarse.</strong>
+        Cada código sirve una sola vez y te permite entrar si pierdes acceso a tu teléfono.
+        <strong>No volverán a mostrarse.</strong>
       </p>
 
       <ul class="recovery-list">
@@ -116,7 +148,9 @@
 
     @if (step() !== 'recovery-codes') {
       <p class="foot">
-        <button class="linkish" type="button" (click)="backToLogin()">Volver al inicio de sesión</button>
+        <button class="linkish" type="button" (click)="backToLogin()">
+          Volver al inicio de sesión
+        </button>
       </p>
     }
   </div>

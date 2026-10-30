@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
-use App\Mail\ProducerCredentialsMail;
 use App\Models\AccessRequest;
 use App\Models\Finca;
 use App\Models\User;
+use App\Services\ProducerOnboarding;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class AccessRequestApiController extends Controller
@@ -29,6 +30,9 @@ class AccessRequestApiController extends Controller
             'success' => true,
             'message' => 'Solicitudes recuperadas con éxito.',
             'data' => AccessRequest::query()->latest()->get(),
+            'delivery' => ['configured' => ! in_array(config('mail.default'), ['log', 'array', 'failover']),
+                'console_reset' => app()->environment('local') && config('invitations.console_enabled') && in_array(config('mail.default'), ['log', 'array']),
+                'local_preview' => app()->environment('local') && in_array(config('mail.default'), ['log', 'array'])],
         ]);
     }
 
@@ -40,117 +44,67 @@ class AccessRequestApiController extends Controller
         if (! $request->user()->isSuperAdmin()) {
             return $this->forbiddenResponse();
         }
+        $data = $request->validate(['action' => 'required|in:approve,waitlist,deny']);
 
-        $validated = $request->validate([
-            'action' => 'required|in:approve,waitlist,deny',
-        ]);
+        return DB::transaction(function () use ($accessRequest, $data) {
+            $locked = AccessRequest::lockForUpdate()->findOrFail($accessRequest->id);
+            if (in_array($locked->status, ['approved', 'denied'])) {
+                abort(409, 'Esta solicitud ya tiene una decisión definitiva. No se modificó ninguna cuenta.');
+            }
+            if ($data['action'] === 'approve') {
+                return $this->approve($locked);
+            }
+            $locked->update(['status' => $data['action'] === 'deny' ? 'denied' : 'waitlisted']);
 
-        return match ($validated['action']) {
-            'approve' => $this->approve($accessRequest),
-            'waitlist' => $this->updateRequestStatus($accessRequest, 'waitlisted', 'Solicitud puesta en espera.'),
-            'deny' => $this->deny($accessRequest),
-        };
+            return response()->json(['success' => true, 'data' => $locked]);
+        }, 3);
     }
 
     private function approve(AccessRequest $accessRequest): JsonResponse
     {
-        if ($accessRequest->status === 'approved') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Esta solicitud ya fue aprobada.',
-            ], 422);
+        $user = User::where('email', $accessRequest->email)->lockForUpdate()->first();
+        if (! $user) {
+            $user = User::create(['name' => trim($accessRequest->firstname.' '.$accessRequest->lastname),
+                'email' => $accessRequest->email, 'password' => Hash::make(Str::random(64)), 'role' => 'productor']);
         }
-
-        $password = Str::random(8);
-
-        $user = User::updateOrCreate(
-            ['email' => $accessRequest->email],
-            [
-                'name' => trim("{$accessRequest->firstname} {$accessRequest->lastname}"),
-                'password' => Hash::make($password),
-            ],
-        );
-
-        // Una nueva aprobación invalida cualquier sesión anterior del productor.
-        $user->tokens()->delete();
-
-        // Evita duplicar la finca si una solicitud aprobada previamente fue denegada y se aprueba de nuevo.
-        Finca::firstOrCreate(
-            [
-                'user_id' => $user->id,
-                'nombre' => $accessRequest->landname,
-            ],
-            ['estado' => 'pendiente'],
-        );
-
+        abort_unless($user->role === UserRole::Productor, 409, 'La solicitud no corresponde a una cuenta productora.');
+        // The access request already names the initial farm. One approval
+        // authorizes that relationship; the producer completes its field data.
+        Finca::firstOrCreate(['user_id' => $user->id, 'nombre' => $accessRequest->landname], ['estado' => 'aprobado']);
         $accessRequest->update(['status' => 'approved']);
+        app(ProducerOnboarding::class)->prepare($accessRequest, $user, true);
 
-        $emailSent = true;
-
-        try {
-            Mail::to($user->email)->send(new ProducerCredentialsMail(
-                user: $user,
-                password: $password,
-                farmName: $accessRequest->landname,
-            ));
-        } catch (\Throwable $exception) {
-            $emailSent = false;
-
-            Log::error('No se pudieron enviar las credenciales del productor.', [
-                'access_request_id' => $accessRequest->id,
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'exception' => $exception,
-            ]);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => $emailSent
-                ? 'Acceso permitido y credenciales enviadas al productor.'
-                : 'Acceso permitido, pero no se pudieron enviar las credenciales por correo.',
-            'data' => $accessRequest->fresh(),
-            'email_sent' => $emailSent,
-        ]);
+        return response()->json(['success' => true, 'data' => $accessRequest->fresh(), 'message' => 'Acceso y primera finca aprobados. Se encoló el correo con la contraseña temporal. El productor cambiará su contraseña, completará su finca y creará sus lotes.', 'email_sent' => false, 'email_status' => 'queued']);
     }
 
-    private function deny(AccessRequest $accessRequest): JsonResponse
+    public function resend(Request $request, AccessRequest $accessRequest): JsonResponse
     {
-        if ($accessRequest->status === 'denied') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Esta solicitud ya fue denegada.',
-            ], 422);
-        }
+        abort_unless($request->user()->isSuperAdmin(), 403);
+        $request->validate(['reset_password' => 'sometimes|boolean']);
+        $resetPassword = $request->boolean('reset_password');
+        abort_if($resetPassword && (! app()->environment('local') || ! config('invitations.console_enabled') || ! in_array(config('mail.default'), ['log', 'array'])), 403, 'La generación por consola solo está disponible en pruebas locales sin SMTP.');
 
-        $accessRequest->update(['status' => 'denied']);
+        return DB::transaction(function () use ($accessRequest, $resetPassword) {
+            $r = AccessRequest::lockForUpdate()->findOrFail($accessRequest->id);
+            abort_unless($r->status === 'approved', 409, 'Primero debes aprobar la solicitud.');
+            abort_if($r->updated_at->gt(now()->subMinute()) && $r->invitation_status === 'queued', 429, 'La invitación está en cola. Espera un minuto antes de reenviar.');
+            $user = User::where('email', $r->email)->lockForUpdate()->firstOrFail();
+            abort_unless($user->role === UserRole::Productor, 403, 'Solo se puede generar acceso para productores.');
+            app(ProducerOnboarding::class)->prepare($r, $user, $resetPassword);
 
-        // Si el productor tenía una sesión activa, se revoca de inmediato.
-        User::where('email', $accessRequest->email)->first()?->tokens()->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Solicitud denegada.',
-            'data' => $accessRequest->fresh(),
-        ]);
+            return response()->json(['success' => true, 'data' => $r->fresh(), 'message' => $resetPassword
+                ? 'Nueva contraseña temporal generada. Se cerraron las sesiones anteriores. Aparecerá en la consola del trabajador al procesar la invitación.'
+                : 'Invitación encolada. Si aún usaba una contraseña temporal, la anterior queda invalidada.']);
+        });
     }
 
-    private function updateRequestStatus(AccessRequest $accessRequest, string $status, string $message): JsonResponse
+    public function preview(Request $request, AccessRequest $accessRequest): JsonResponse
     {
-        if ($accessRequest->status === $status) {
-            return response()->json([
-                'success' => false,
-                'message' => 'La solicitud ya tiene este estado.',
-            ], 422);
-        }
+        abort_unless(app()->environment('local') && $request->user()->isSuperAdmin(), 404);
+        $path = 'mail-previews/invitation-'.$accessRequest->id.'.html';
+        abort_unless($accessRequest->invitation_status === 'preview' && Storage::disk('local')->exists($path), 404, 'El correo de prueba todavía no está disponible.');
 
-        $accessRequest->update(['status' => $status]);
-
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => $accessRequest->fresh(),
-        ]);
+        return response()->json(['success' => true, 'data' => ['html' => Storage::disk('local')->get($path)]]);
     }
 
     private function forbiddenResponse(): JsonResponse

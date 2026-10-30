@@ -1,0 +1,206 @@
+<div class="page-shell">
+  <app-admin-sidebar />
+  <main class="content">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Personas y permisos</p>
+        <h1>Usuarios y acceso</h1>
+        <p>Administra el acceso de los productores y consulta los motivos de cada cambio.</p>
+      </div>
+      <a class="button secondary" routerLink="/guia">Ver guía de permisos</a>
+    </header>
+    <div class="flow-steps">
+      <a routerLink="/access-requests"
+        ><strong>1. Solicitudes</strong><span>Revisar y aprobar nuevas personas.</span></a
+      >
+      <div>
+        <strong>2. Usuarios y acceso</strong
+        ><span>Suspender, reactivar o recuperar una cuenta.</span>
+      </div>
+      <a routerLink="/estates"
+        ><strong>3. Fincas</strong><span>Revisar la vinculación y habilitar la operación.</span></a
+      >
+    </div>
+    @if (notice()) {
+      <p class="alert success" role="status">{{ notice() }}</p>
+    }
+    @if (error()) {
+      <p class="alert error" role="alert">{{ error() }}</p>
+    }
+    <form class="filters" (ngSubmit)="load()">
+      <label
+        >Buscar persona<input
+          name="search"
+          [(ngModel)]="search"
+          maxlength="100"
+          placeholder="Nombre o correo" /></label
+      ><label
+        >Estado de cuenta<select name="status" [(ngModel)]="status">
+          <option value="">Todas</option>
+          <option value="active">Activas</option>
+          <option value="suspended">Suspendidas</option>
+        </select></label
+      ><button class="button primary" [disabled]="loading()">Buscar</button>
+    </form>
+    <section class="table-panel">
+      <header class="table-header">
+        <h2>Cuentas registradas</h2>
+        <p>
+          {{ page()?.total ?? 0 }} cuentas. Aprobar una cuenta y aprobar una finca son decisiones
+          diferentes.
+        </p>
+      </header>
+      @if (loading()) {
+        <p role="status" class="empty">Cargando cuentas…</p>
+      }
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Persona</th>
+              <th>Cuenta</th>
+              <th>Primer acceso</th>
+              <th>Fincas</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of page()?.data ?? []; track user.id) {
+              <tr>
+                <td>
+                  <strong>{{ user.name }}</strong
+                  ><small>{{ user.email }}</small
+                  ><small>{{ user.phone || 'Sin teléfono registrado' }}</small>
+                </td>
+                <td>
+                  <span class="status" [class.suspended]="user.account_status === 'suspended'">{{
+                    user.account_status === 'suspended' ? 'Suspendida' : 'Activa'
+                  }}</span
+                  ><small>{{
+                    user.role === 'superadmin'
+                      ? 'Superadmin · cuenta protegida'
+                      : user.approval_status === 'approved'
+                        ? 'Solicitud aprobada'
+                        : 'Sin solicitud aprobada'
+                  }}</small>
+                  @if (user.suspension_reason) {
+                    <small>Motivo: {{ user.suspension_reason }}</small>
+                  }
+                </td>
+                <td>
+                  {{
+                    user.must_change_password
+                      ? 'Debe crear su contraseña personal'
+                      : 'Contraseña personal configurada'
+                  }}
+                </td>
+                <td>{{ user.fincas_count }}</td>
+                <td class="actions">
+                  <button type="button" (click)="showHistory(user)">Historial</button>
+                  @if (user.role === 'productor') {
+                    @if (user.account_status === 'suspended') {
+                      <button type="button" (click)="open(user, 'reactivate')">Reactivar</button>
+                    } @else {
+                      <button type="button" (click)="open(user, 'suspend')">Suspender</button
+                      ><button
+                        type="button"
+                        [disabled]="user.approval_status !== 'approved'"
+                        (click)="open(user, 'recover')"
+                      >
+                        Recuperar acceso
+                      </button>
+                    }
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5">No hay cuentas que coincidan con tu búsqueda.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (page(); as p) {
+        <div class="pager">
+          <button
+            type="button"
+            class="button secondary"
+            [disabled]="loading() || p.current_page <= 1"
+            (click)="load(p.current_page - 1)"
+          >
+            Anterior</button
+          ><span>Página {{ p.current_page }} de {{ p.last_page }}</span
+          ><button
+            type="button"
+            class="button secondary"
+            [disabled]="loading() || p.current_page >= p.last_page"
+            (click)="load(p.current_page + 1)"
+          >
+            Siguiente
+          </button>
+        </div>
+      }
+    </section>
+  </main>
+</div>
+@if (selected(); as user) {
+  <div class="modal-backdrop">
+    <section
+      class="account-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="account-dialog-title"
+    >
+      <header>
+        <div>
+          <h2 id="account-dialog-title">
+            {{ history() !== null ? 'Historial de acceso' : actionTitle }}
+          </h2>
+          <p>{{ user.name }} · {{ user.email }}</p>
+        </div>
+        <button type="button" (click)="close()" [disabled]="busy()" aria-label="Cerrar">×</button>
+      </header>
+      @if (history(); as events) {
+        @for (event of events; track event.id) {
+          <article class="event">
+            <strong>{{ eventLabel(event.action) }}</strong>
+            <p>{{ event.reason }}</p>
+            <small
+              >{{ event.actor_name }} ·
+              {{ event.created_at | date: 'dd/MM/yyyy HH:mm' : '-0500' }}</small
+            >
+          </article>
+        } @empty {
+          <p>No hay cambios administrativos registrados para esta cuenta.</p>
+        }
+      } @else {
+        <p>{{ actionHelp }}</p>
+        <form (ngSubmit)="submit()">
+          <label for="reason"
+            >Motivo del cambio<textarea
+              id="reason"
+              name="reason"
+              [(ngModel)]="reason"
+              minlength="10"
+              maxlength="1000"
+              required
+              [disabled]="busy()"
+              placeholder="Explica por qué realizas esta acción"
+            ></textarea></label
+          ><small>El motivo quedará registrado en el historial de la cuenta.</small>
+          @if (error()) {
+            <p class="alert error" role="alert">{{ error() }}</p>
+          }
+          <footer>
+            <button type="button" class="button secondary" (click)="close()" [disabled]="busy()">
+              Cancelar</button
+            ><button type="submit" class="button primary" [disabled]="busy()">
+              {{ busy() ? 'Guardando…' : actionTitle }}
+            </button>
+          </footer>
+        </form>
+      }
+    </section>
+  </div>
+}

@@ -10,31 +10,45 @@ class TranscriptionService
 {
     /**
      * Transcribe audio file from MinIO
-     * 
-     * @param string $fileKey The MinIO file key (e.g., 'documentos/usuario_1/seguimiento/audios/uuid.m4a')
+     *
+     * @param  string  $fileKey  The MinIO file key (e.g., 'documentos/usuario_1/seguimiento/audios/uuid.m4a')
      * @return string|null The transcribed text or null if failed
      */
-    public function transcribeAudio(string $fileKey): ?string
+    public function transcribeAudio(string $fileKey, string $diskName = 's3'): ?string
     {
         try {
-            $disk = Storage::disk('s3');
-            
-            if (!$disk->exists($fileKey)) {
+            $disk = Storage::disk($diskName);
+
+            if (! $disk->exists($fileKey)) {
                 Log::error("Audio file not found in MinIO: $fileKey");
+
                 return null;
             }
 
             $audioContent = $disk->get($fileKey);
             $tempFile = tempnam(sys_get_temp_dir(), 'transcribe_');
+            if ($tempFile === false) {
+                throw new \RuntimeException('No se pudo preparar el audio.');
+            }
+            $extension = strtolower(pathinfo($fileKey, PATHINFO_EXTENSION));
+            $namedFile = $tempFile.'.'.(in_array($extension, ['mp3', 'wav', 'm4a', 'mp4', 'webm', 'ogg']) ? $extension : 'm4a');
+            if (! rename($tempFile, $namedFile)) {
+                unlink($tempFile);
+                throw new \RuntimeException('No se pudo preparar el nombre del audio.');
+            }
+            $tempFile = $namedFile;
             file_put_contents($tempFile, $audioContent);
 
-            $result = $this->transcribeFile($tempFile);
-
-            unlink($tempFile);
-
-            return $result;
+            try {
+                return $this->transcribeFile($tempFile);
+            } finally {
+                if (is_file($tempFile)) {
+                    unlink($tempFile);
+                }
+            }
         } catch (\Exception $e) {
-            Log::error("Transcription failed: " . $e->getMessage());
+            Log::error('Transcription failed: '.$e->getMessage());
+
             return null;
         }
     }
@@ -60,8 +74,9 @@ class TranscriptionService
     private function transcribeWithOpenAI(string $filePath): ?string
     {
         $apiKey = config('services.transcription.openai_api_key');
-        if (!$apiKey) {
+        if (! $apiKey) {
             Log::warning('OpenAI API key not configured for transcription');
+
             return null;
         }
 
@@ -82,10 +97,12 @@ class TranscriptionService
                 return trim($response->body());
             }
 
-            Log::error("OpenAI transcription failed: " . $response->body());
+            Log::error('OpenAI transcription failed: '.$response->body());
+
             return null;
         } catch (\Exception $e) {
-            Log::error("OpenAI transcription error: " . $e->getMessage());
+            Log::error('OpenAI transcription error: '.$e->getMessage());
+
             return null;
         }
     }
@@ -96,8 +113,9 @@ class TranscriptionService
     private function transcribeWithGoogle(string $filePath): ?string
     {
         $apiKey = config('services.transcription.google_api_key');
-        if (!$apiKey) {
+        if (! $apiKey) {
             Log::warning('Google API key not configured for transcription');
+
             return null;
         }
 
@@ -126,10 +144,12 @@ class TranscriptionService
                 }
             }
 
-            Log::error("Google transcription failed: " . $response->body());
+            Log::error('Google transcription failed: '.$response->body());
+
             return null;
         } catch (\Exception $e) {
-            Log::error("Google transcription error: " . $e->getMessage());
+            Log::error('Google transcription error: '.$e->getMessage());
+
             return null;
         }
     }
@@ -140,8 +160,9 @@ class TranscriptionService
     private function transcribeWithAssembly(string $filePath): ?string
     {
         $apiKey = config('services.transcription.assembly_api_key');
-        if (!$apiKey) {
+        if (! $apiKey) {
             Log::warning('AssemblyAI API key not configured for transcription');
+
             return null;
         }
 
@@ -154,8 +175,9 @@ class TranscriptionService
                 basename($filePath)
             )->post('https://api.assemblyai.com/v2/upload');
 
-            if (!$uploadResponse->successful()) {
-                Log::error("AssemblyAI upload failed: " . $uploadResponse->body());
+            if (! $uploadResponse->successful()) {
+                Log::error('AssemblyAI upload failed: '.$uploadResponse->body());
+
                 return null;
             }
 
@@ -169,8 +191,9 @@ class TranscriptionService
                 'language_code' => 'es',
             ]);
 
-            if (!$transcriptResponse->successful()) {
-                Log::error("AssemblyAI transcription failed: " . $transcriptResponse->body());
+            if (! $transcriptResponse->successful()) {
+                Log::error('AssemblyAI transcription failed: '.$transcriptResponse->body());
+
                 return null;
             }
 
@@ -190,16 +213,19 @@ class TranscriptionService
                     return $statusResponse->json()['text'];
                 }
                 if ($status === 'error') {
-                    Log::error("AssemblyAI transcription error: " . $statusResponse->body());
+                    Log::error('AssemblyAI transcription error: '.$statusResponse->body());
+
                     return null;
                 }
                 $attempt++;
             }
 
-            Log::error("AssemblyAI transcription timeout");
+            Log::error('AssemblyAI transcription timeout');
+
             return null;
         } catch (\Exception $e) {
-            Log::error("AssemblyAI transcription error: " . $e->getMessage());
+            Log::error('AssemblyAI transcription error: '.$e->getMessage());
+
             return null;
         }
     }

@@ -3,7 +3,8 @@ import { Finca } from '../../estates/models/finca.model';
 import { Lote } from '../../lots/models/lote.model';
 
 export type MultimediaCategoria = 'seguimiento' | 'enfermedad';
-export type MultimediaFileable = Finca | Lote | Actividad;
+export interface ProductionEvidenceContext { id: number; nombre: string; tipo: string; finca?: Finca; }
+export type MultimediaFileable = Finca | Lote | Actividad | ProductionEvidenceContext;
 
 export interface ArchivoMultimedia {
   id: number;

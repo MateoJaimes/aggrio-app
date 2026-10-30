@@ -12,6 +12,8 @@ export interface AccessRequest {
   city: string;
   email: string;
   status: AccessRequestStatus;
+  invitation_status?: string | null;
+  invitation_sent_at?: string | null;
   created_at: string;
   updated_at: string;
 }

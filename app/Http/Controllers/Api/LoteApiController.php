@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\DispositivoIot;
 use App\Models\Finca;
 use App\Models\Lote;
-use Illuminate\Http\Request;
+use App\Services\FieldAccess;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class LoteApiController extends Controller
 {
@@ -69,6 +72,7 @@ class LoteApiController extends Controller
         }
 
         $data = $this->validateAdminLote($request);
+        app(FieldAccess::class)->operational(Finca::findOrFail($data['finca_id']));
         $lote = Lote::create($data);
 
         return response()->json([
@@ -96,7 +100,9 @@ class LoteApiController extends Controller
             ], 404);
         }
 
-        $lote->update($this->validateAdminLote($request));
+        $data = $this->validateAdminLote($request);
+        app(FieldAccess::class)->operational(Finca::findOrFail($data['finca_id']));
+        $lote->update($data);
 
         return response()->json([
             'success' => true,
@@ -123,11 +129,15 @@ class LoteApiController extends Controller
             ], 404);
         }
 
-        $lote->delete();
+        $request->validate(['motivo' => 'required|string|max:1000']);
+        DB::transaction(function () use ($lote) {
+            $lote->delete();
+            DispositivoIot::where('lote_id', $lote->id)->update(['activo' => false]);
+        });
 
         return response()->json([
             'success' => true,
-            'message' => 'Lote eliminado exitosamente.',
+            'message' => 'Lote archivado; su historial se conserva.',
         ], 200);
     }
 
@@ -138,15 +148,15 @@ class LoteApiController extends Controller
     {
         // 1. Validar que la finca exista y pertenezca al usuario del Token y su estado sea aprovado
         $finca = Finca::where('id', $finca_id)
-                      ->where('user_id', $request->user()->id)
-                      ->first();
+            ->where('user_id', $request->user()->id)
+            ->first();
 
         // CLAVE: Validar que la finca esté aprobada antes de mostrar sus lotes
 
-        if (!$finca || $finca->estado !== 'aprobado') {
+        if (! $finca || $finca->estado !== 'aprobado') {
             return response()->json([
                 'success' => false,
-                'message' => 'Acceso denegado. La finca no existe o aún no ha sido aprobada.'
+                'message' => 'Acceso denegado. La finca no existe o aún no ha sido aprobada.',
             ], 403);
         }
 
@@ -155,7 +165,7 @@ class LoteApiController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $lotes
+            'data' => $lotes,
         ], 200);
     }
 
@@ -164,71 +174,7 @@ class LoteApiController extends Controller
      */
     public function store(Request $request, $finca_id): JsonResponse
     {
-        // 1. Validar los datos que el celular debe enviar
-        $request->validate([
-            'nombre'        => 'required|string|max:255',
-            'hectareas'     => 'required|numeric|min:0.01',
-            'tipo_cultivo'  => 'required|string|max:255',
-            'variedad'      => 'nullable|string|max:255',
-            'fecha_siembra' => 'nullable|date',
-            'latitud'       => 'nullable|numeric|between:-90,90',
-            'longitud'      => 'nullable|numeric|between:-180,180',
-        ]);
-
-        // 2. Seguridad de hierro: Verificar que la finca existe y es propiedad del usuario
-        $finca = Finca::where('id', $finca_id)
-                      ->where('user_id', $request->user()->id)
-                      ->first();
-
-        // CLAVE: Validar que la finca esté aprobada antes de crear un lote en ella
-
-        if (!$finca || $finca->estado !== 'aprobado') {
-            return response()->json([
-                'success' => false,
-                'message' => 'No puedes crear lotes. La finca no existe o aún no ha sido aprobada.'
-            ], 403);
-        }
-
-        // Validar que la finca tenga hectáreas totales definidas
-        if ($finca->hectareas_totales === null) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se pueden crear lotes. La finca no tiene hectáreas totales definidas.'
-            ], 400);
-        }
-
-        // Validar que haya espacio disponible
-        $hectareasOcupadas = $finca->lotes()->sum('hectareas');
-        $hectareasDisponibles = $finca->hectareas_totales - $hectareasOcupadas;
-
-        if ($request->hectareas > $hectareasDisponibles) {
-            return response()->json([
-                'success' => false,
-                'message' => sprintf(
-                    'No hay suficiente espacio. El lote requiere %s hectáreas pero solo quedan %s disponibles.',
-                    number_format($request->hectareas, 2),
-                    number_format($hectareasDisponibles, 2)
-                )
-            ], 400);
-        }
-
-        // 3. Crear el lote en la base de datos (nace como disponible)
-        $lote = $finca->lotes()->create([
-            'estado'        => 'disponible',
-            'nombre'        => $request->nombre,
-            'hectareas'     => $request->hectareas,
-            'tipo_cultivo'  => $request->tipo_cultivo,
-            'variedad'      => $request->variedad,
-            'fecha_siembra' => $request->fecha_siembra,
-            'latitud'       => $request->latitud,
-            'longitud'      => $request->longitud,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Lote creado exitosamente desde el campo',
-            'data'    => $lote
-        ], 201);
+        return app(CampoApiController::class)->guardarLote($request, (int) $finca_id);
     }
 
     /**
@@ -242,10 +188,10 @@ class LoteApiController extends Controller
 
         $lote = Lote::with('finca')->where('id', $lote_id)->first();
 
-        if (!$lote || !$lote->finca || $lote->finca->user_id !== $request->user()->id || $lote->finca->estado !== 'aprobado') {
+        if (! $lote || ! $lote->finca || $lote->finca->user_id !== $request->user()->id || $lote->finca->estado !== 'aprobado') {
             return response()->json([
                 'success' => false,
-                'message' => 'Lote no encontrado o acceso denegado.'
+                'message' => 'Lote no encontrado o acceso denegado.',
             ], 404);
         }
 
@@ -254,7 +200,7 @@ class LoteApiController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Estado del lote actualizado correctamente.',
-            'data'    => $lote
+            'data' => $lote,
         ], 200);
     }
 

@@ -48,7 +48,10 @@ class PasswordResetController extends Controller
 
         RateLimiter::hit($throttleKey, 900);
 
-        Password::sendResetLink($request->only('email'));
+        $user = User::where('email', mb_strtolower(trim($request->email)))->first();
+        if ($user && $user->isActive()) {
+            Password::sendResetLink(['email' => $user->email]);
+        }
 
         return $genericResponse;
     }
@@ -67,8 +70,11 @@ class PasswordResetController extends Controller
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user, string $password) {
+                abort_unless($user->isActive(), 403, 'La cuenta está suspendida. Contacta al equipo de Aggrio.');
                 $user->forceFill([
                     'password' => Hash::make($password),
+                    'must_change_password' => false,
+                    'temporary_password_expires_at' => null,
                     'remember_token' => Str::random(60),
                 ])->save();
 

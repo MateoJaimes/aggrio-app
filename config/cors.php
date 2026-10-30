@@ -1,13 +1,13 @@
 <?php
 
 return [
-    // Sin 'sanctum/csrf-cookie': no se usa el modo SPA/cookie de Sanctum (RF006).
-    'paths'                    => ['api/*'],
-    'allowed_methods'          => ['*'],
-    'allowed_origins'          => ['*'],   // 🔒 Después restringimos por IP/puerto
+    // Native API uses Bearer; web refresh cookies are consumed only by /api/web/auth/*.
+    'paths' => ['api/*'],
+    'allowed_methods' => ['*'],
+    'allowed_origins' => array_values(array_filter(array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS', env('FRONTEND_URL', 'http://localhost:4200')))))),
     'allowed_origins_patterns' => [],
-    'allowed_headers'          => ['*'],
-    'exposed_headers'          => [],
-    'max_age'                  => 0,
-    'supports_credentials'     => false,
+    'allowed_headers' => ['*'],
+    'exposed_headers' => [],
+    'max_age' => 0,
+    'supports_credentials' => true,
 ];

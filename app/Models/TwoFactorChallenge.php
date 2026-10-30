@@ -62,12 +62,14 @@ class TwoFactorChallenge extends Model
     /**
      * Busca un reto vigente a partir del token en claro enviado por el cliente.
      */
-    public static function findValid(string $plainToken): ?self
+    public static function findValid(string $plainToken, bool $lock = false): ?self
     {
         return static::with('user')
+            ->whereHas('user', fn ($q) => $q->where('account_status', 'active'))
             ->where('token', hash('sha256', $plainToken))
             ->where('expires_at', '>', now())
             ->where('attempts', '<', self::MAX_ATTEMPTS)
+            ->when($lock, fn ($q) => $q->lockForUpdate())
             ->first();
     }
 

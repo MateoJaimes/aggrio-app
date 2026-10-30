@@ -72,11 +72,11 @@ export class ActivityList implements OnInit {
   }
 
   deleteActividad(actividad: Actividad): void {
-    const confirmed = window.confirm(
-      `¿Deseas eliminar la actividad “${this.tipoLabel(actividad.tipo_actividad)}” del ${actividad.fecha}? Esta acción no se puede deshacer.`,
+    const motivo = window.prompt(
+      `¿Deseas archivar la actividad “${this.tipoLabel(actividad.tipo_actividad)}” del ${actividad.fecha}? Se conserva el historial. Escribe el motivo para continuar.`,
     );
 
-    if (!confirmed) {
+    if (!motivo?.trim()) {
       return;
     }
 
@@ -84,7 +84,7 @@ export class ActivityList implements OnInit {
     this.error.set('');
     this.notice.set('');
 
-    this.actividadAdminService.deleteActividad(actividad.id).subscribe({
+    this.actividadAdminService.deleteActividad(actividad.id, motivo).subscribe({
       next: (response) => {
         this.notice.set(response.message ?? 'Actividad eliminada exitosamente.');
         this.deletingId.set(null);

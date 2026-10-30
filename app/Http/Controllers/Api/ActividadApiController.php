@@ -5,8 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Actividad;
 use App\Models\Lote;
-use Illuminate\Http\Request;
+use App\Services\FieldAccess;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ActividadApiController extends Controller
 {
@@ -31,7 +32,7 @@ class ActividadApiController extends Controller
         }
 
         $request->validate([
-            'tipo_actividad' => 'nullable|in:' . implode(',', self::TIPOS_ACTIVIDAD),
+            'tipo_actividad' => 'nullable|in:'.implode(',', self::TIPOS_ACTIVIDAD),
         ]);
 
         $actividades = Actividad::with(['lote.finca.user'])
@@ -80,7 +81,9 @@ class ActividadApiController extends Controller
             return $this->adminAccessDenied();
         }
 
-        $actividad = Actividad::create($this->validateAdminActividad($request));
+        $data = $this->validateAdminActividad($request);
+        app(FieldAccess::class)->entity($request, 'lote', $data['lote_id'], true);
+        $actividad = Actividad::create($data);
 
         return response()->json([
             'success' => true,
@@ -104,7 +107,11 @@ class ActividadApiController extends Controller
             return $this->actividadNoEncontrada();
         }
 
-        $actividad->update($this->validateAdminActividad($request));
+        $data = $this->validateAdminActividad($request);
+        abort_if((int) $data['lote_id'] !== $actividad->lote_id, 422, 'No se puede trasladar una actividad.');
+        $request->validate(['motivo' => 'required|string|max:1000']);
+        app(FieldAccess::class)->entity($request, 'lote', $data['lote_id'], true);
+        $actividad->update($data);
 
         return response()->json([
             'success' => true,
@@ -128,11 +135,12 @@ class ActividadApiController extends Controller
             return $this->actividadNoEncontrada();
         }
 
+        $request->validate(['motivo' => 'required|string|max:1000']);
         $actividad->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Actividad eliminada exitosamente.',
+            'message' => 'Actividad anulada; su historial se conserva.',
         ], 200);
     }
 
@@ -141,45 +149,7 @@ class ActividadApiController extends Controller
      */
     public function store(Request $request, $lote_id): JsonResponse
     {
-        // 1. Validar los datos que envía la app móvil
-        $request->validate([
-            'tipo_actividad' => 'required|string|max:255',
-            'fecha'          => 'required|date',
-            'costo'          => 'required|numeric|min:0',
-            'observaciones'  => 'nullable|string'
-        ]);
-
-        // 2. Buscar el lote y asegurar que la finca dueña le pertenezca al usuario autenticado
-        $lote = Lote::with('finca')->where('id', $lote_id)->first();
-
-        if (!$lote || $lote->finca->user_id !== $request->user()->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Lote no encontrado o acceso denegado.'
-            ], 404);
-        }
-
-        // 3. Validar que el lote permita registrar actividades
-        if (!in_array($lote->estado, ['disponible', 'en_uso'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'El lote no permite registrar actividades. Estado actual: ' . $lote->estado
-            ], 403);
-        }
-
-        // 4. Crear la actividad en la base de datos
-        $actividad = $lote->actividades()->create([
-            'tipo_actividad' => $request->tipo_actividad,
-            'fecha'          => $request->fecha,
-            'costo'          => $request->costo,
-            'observaciones'  => $request->observaciones
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Actividad registrada exitosamente en el campo.',
-            'data'    => $actividad
-        ], 201);
+        return app(CampoApiController::class)->guardarActividad($request, (int) $lote_id);
     }
 
     /**
@@ -190,10 +160,10 @@ class ActividadApiController extends Controller
         // 1. Buscar el lote y validar permisos (usamos has() o with() para seguridad)
         $lote = Lote::with('finca')->where('id', $lote_id)->first();
 
-        if (!$lote || $lote->finca->user_id !== $request->user()->id) {
+        if (! $lote || $lote->finca->user_id !== $request->user()->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Lote no encontrado o acceso denegado.'
+                'message' => 'Lote no encontrado o acceso denegado.',
             ], 404);
         }
 
@@ -202,7 +172,7 @@ class ActividadApiController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $actividades
+            'data' => $actividades,
         ], 200);
     }
 
@@ -210,8 +180,8 @@ class ActividadApiController extends Controller
     {
         return $request->validate([
             'lote_id' => 'required|integer|exists:lotes,id',
-            'tipo_actividad' => 'required|in:' . implode(',', self::TIPOS_ACTIVIDAD),
-            'fecha' => 'required|date',
+            'tipo_actividad' => 'required|in:'.implode(',', self::TIPOS_ACTIVIDAD),
+            'fecha' => 'required|date|before_or_equal:today',
             'costo' => 'required|numeric|min:0',
             'observaciones' => 'nullable|string',
         ]);

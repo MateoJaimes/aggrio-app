@@ -19,9 +19,10 @@ import { FincaAdminService } from '../services/finca-admin.service';
           <div>
             <p class="eyebrow">Administración</p>
             <h1>Fincas</h1>
+            <p>Revisa las vinculaciones. El productor completa los datos de su finca y organiza sus lotes.</p>
           </div>
 
-          <a class="button primary" [routerLink]="['/estates/new']">Nueva finca</a>
+          <details><summary>Registro asistido</summary><p>Úsalo si el productor necesita ayuda para vincular otra finca.</p><a class="button secondary" [routerLink]="['/estates/new']">Registrar finca para un productor</a></details>
         </div>
 
         <div class="stats-grid">
@@ -59,7 +60,7 @@ import { FincaAdminService } from '../services/finca-admin.service';
               <table>
                 <thead>
                   <tr>
-                    <th>Propietario</th>
+                    <th>Productor responsable</th>
                     <th>Nombre</th>
                     <th>Hectáreas</th>
                     <th>Estado</th>
@@ -83,7 +84,8 @@ import { FincaAdminService } from '../services/finca-admin.service';
                         </span>
                       </td>
                       <td class="actions">
-                        <a class="edit-link" [routerLink]="['/estates', finca.id, 'edit']">Editar</a>
+                        <a class="edit-link" [routerLink]="['/estates', finca.id, 'edit']">Corregir datos</a>
+                        <a class="edit-link" routerLink="/produccion" [queryParams]="{ finca: finca.id, area: 'cultivos' }">Ver producción</a>
 
                         @if (finca.estado === 'pendiente') {
                           <button type="button" (click)="handleEstado(finca, 'aprobar')">Aprobar</button>
@@ -109,8 +111,8 @@ import { FincaAdminService } from '../services/finca-admin.service';
       :host {
         display: block;
         min-height: 100vh;
-        background: linear-gradient(135deg, #eef4ff 0%, #f8fafc 35%, #edf6ff 100%);
-        color: #0f172a;
+        background: linear-gradient(135deg, #fff5f5 0%, var(--aggrio-surface-muted) 35%, #fff8f8 100%);
+        color: var(--aggrio-ink);
       }
 
       .page-shell {
@@ -133,7 +135,7 @@ import { FincaAdminService } from '../services/finca-admin.service';
 
       .eyebrow {
         margin: 0;
-        color: #4f46e5;
+        color: #c51217;
         text-transform: uppercase;
         font-size: 0.72rem;
         letter-spacing: 0.12rem;
@@ -142,7 +144,7 @@ import { FincaAdminService } from '../services/finca-admin.service';
 
       h1 {
         margin: 0.15rem 0 0;
-        font-size: clamp(2rem, 2.6vw, 2.8rem);
+        font-size: clamp(1.8rem, 2.6vw, 2.5rem);
         letter-spacing: -0.05em;
       }
 
@@ -155,7 +157,7 @@ import { FincaAdminService } from '../services/finca-admin.service';
 
       .stat-card {
         background: rgba(255, 255, 255, 0.85);
-        border: 1px solid #dbe4f0;
+        border: 1px solid var(--aggrio-border);
         border-radius: 1rem;
         padding: 1rem 1.1rem;
         box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
@@ -176,7 +178,7 @@ import { FincaAdminService } from '../services/finca-admin.service';
       .stat-card .label {
         display: block;
         font-size: 0.78rem;
-        color: #475569;
+        color: var(--aggrio-muted);
         text-transform: uppercase;
         letter-spacing: 0.08rem;
         margin-bottom: 0.4rem;
@@ -195,14 +197,14 @@ import { FincaAdminService } from '../services/finca-admin.service';
       }
 
       .alert.error {
-        background: #fef2f2;
-        color: #991b1b;
-        border-color: #fecaca;
+        background: var(--aggrio-danger-background);
+        color: var(--aggrio-danger);
+        border-color: var(--aggrio-danger-border);
       }
 
       .table-panel {
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid #dbe4f0;
+        background: var(--aggrio-surface);
+        border: 1px solid var(--aggrio-border);
         border-radius: 1rem;
         box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
         overflow: hidden;
@@ -210,8 +212,8 @@ import { FincaAdminService } from '../services/finca-admin.service';
 
       .table-header {
         padding: 1.15rem 1.25rem;
-        border-bottom: 1px solid #e5e7eb;
-        background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+        border-bottom: 1px solid var(--aggrio-border);
+        background: linear-gradient(180deg, var(--aggrio-surface-muted) 0%, #eef2ff 100%);
       }
 
       .table-header h2 {
@@ -221,7 +223,7 @@ import { FincaAdminService } from '../services/finca-admin.service';
 
       .loading {
         padding: 1.5rem;
-        color: #475569;
+        color: var(--aggrio-muted);
       }
 
       .table-wrap {
@@ -236,21 +238,21 @@ import { FincaAdminService } from '../services/finca-admin.service';
       th,
       td {
         padding: 1rem 1.25rem;
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid var(--aggrio-border);
         text-align: left;
         vertical-align: middle;
       }
 
       th {
-        background: #f8fafc;
+        background: var(--aggrio-surface-muted);
         font-size: 0.85rem;
-        color: #475569;
+        color: var(--aggrio-muted);
         text-transform: uppercase;
         letter-spacing: 0.07rem;
       }
 
       tbody tr:hover {
-        background: rgba(59, 130, 246, 0.03);
+        background: rgba(236, 28, 33, 0.03);
       }
 
       .badge {
@@ -264,17 +266,17 @@ import { FincaAdminService } from '../services/finca-admin.service';
 
       .badge.pending {
         background: #fef3c7;
-        color: #92400e;
+        color: var(--aggrio-warning);
       }
 
       .badge.approved {
         background: #dcfce7;
-        color: #166534;
+        color: var(--aggrio-success);
       }
 
       .badge.rejected {
         background: #fee2e2;
-        color: #991b1b;
+        color: var(--aggrio-danger);
       }
 
       .actions {
@@ -285,7 +287,7 @@ import { FincaAdminService } from '../services/finca-admin.service';
       }
 
       .edit-link {
-        color: #1d4ed8;
+        color: var(--aggrio-primary-dark);
         text-decoration: none;
         font-weight: 700;
       }
@@ -305,10 +307,10 @@ import { FincaAdminService } from '../services/finca-admin.service';
         padding: 0.85rem 1.2rem;
         border: none;
         cursor: pointer;
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        background: linear-gradient(135deg, var(--aggrio-primary) 0%, var(--aggrio-primary-dark) 100%);
         color: white;
         text-decoration: none;
-        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+        box-shadow: 0 10px 20px rgba(236, 28, 33, 0.2);
       }
 
       button.danger {
@@ -318,7 +320,7 @@ import { FincaAdminService } from '../services/finca-admin.service';
 
       .empty {
         text-align: center;
-        color: #64748b;
+        color: var(--aggrio-muted);
         padding: 2rem 1rem;
       }
 

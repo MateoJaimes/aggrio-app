@@ -45,11 +45,11 @@ import { AuthService } from './auth.service';
       :host { display: block; flex: 0 0 auto; min-width: 0; margin-top: auto; }
       .session { display: grid; gap: .55rem; padding: .9rem; border: 1px solid #ffffff1f; border-radius: 1rem; background: #ffffff0d; }
       .identity { display: flex; gap: .6rem; align-items: center; min-width: 0; }
-      .avatar { display: grid; flex: none; width: 2rem; height: 2rem; place-items: center; border-radius: 50%; background: #2563eb; color: #fff; font-size: .78rem; font-weight: 700; }
+      .avatar { display: grid; flex: none; width: 2rem; height: 2rem; place-items: center; border-radius: 50%; background: #ec1c21; color: #fff; font-size: .78rem; font-weight: 700; }
       .who { display: grid; min-width: 0; }
       .who strong { overflow: hidden; color: #fff; font-size: .86rem; text-overflow: ellipsis; white-space: nowrap; }
       .who small { overflow: hidden; color: #ffffff9e; font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
-      .role { justify-self: start; padding: .15rem .5rem; border-radius: 999px; background: #2563eb33; color: #bfdbfe; font-size: .66rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+      .role { justify-self: start; padding: .15rem .5rem; border-radius: 999px; background: #ec1c2133; color: #bfdbfe; font-size: .66rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
       .session-error { margin: 0; color: #fecaca; font-size: .74rem; }
       button { width: 100%; border: 0; border-radius: .65rem; font: inherit; cursor: pointer; }
       button:disabled { cursor: wait; opacity: .55; }

@@ -1,0 +1,67 @@
+/* Design tokens shared by Laravel and Angular. */
+@font-face {
+  font-family: "Nunito";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('../fonts/aggrio/nunito-variable.ttf') format('truetype');
+}
+:root {
+  color-scheme: light;
+  --aggrio-font: "Nunito", "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+  --aggrio-cover-image: url("https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&w=2000&q=88");
+  --aggrio-page-background: #f5f6f8;
+  --aggrio-link: #ad151a;
+  --aggrio-focus: #b41419;
+  --aggrio-sidebar-background: linear-gradient(180deg, #0f172a, #111827);
+  --aggrio-primary: #ec1c21;
+  --aggrio-primary-dark: #c51217;
+  --aggrio-primary-soft: #fff1f2;
+  --aggrio-ink: #0f172a;
+  --aggrio-muted: #526174;
+  --aggrio-border: #dbe4f0;
+  --aggrio-surface: #fff;
+  --aggrio-surface-muted: #f8fafc;
+  --aggrio-control-background: #f5f8fc;
+  --aggrio-control-option-background: #fff;
+  --aggrio-card-radius: 1rem;
+  --aggrio-control-radius: .75rem;
+  --aggrio-card-shadow: 0 12px 30px rgb(15 23 42 / 8%);
+  --aggrio-button-background: linear-gradient(135deg, var(--aggrio-primary), var(--aggrio-primary-dark));
+  --aggrio-success: #166534;
+  --aggrio-success-background: #f0fdf4;
+  --aggrio-success-border: #bbf7d0;
+  --aggrio-danger: #991b1b;
+  --aggrio-danger-background: #fef2f2;
+  --aggrio-danger-border: #fecaca;
+  --aggrio-warning: #92400e;
+  --aggrio-warning-background: #fffbeb;
+  --aggrio-warning-border: #fde68a;
+}
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --aggrio-page-background: #101720;
+  --aggrio-link: #ff9da1;
+  --aggrio-focus: #ff9da1;
+  --aggrio-sidebar-background: linear-gradient(180deg, #080e19, #111827);
+  --aggrio-primary: #ec1c21;
+  --aggrio-primary-dark: #c51217;
+  --aggrio-primary-soft: #452029;
+  --aggrio-ink: #f1f5fa;
+  --aggrio-muted: #b7c3d3;
+  --aggrio-border: #3d4c61;
+  --aggrio-surface: #1b2533;
+  --aggrio-surface-muted: #253245;
+  --aggrio-control-background: #121d2b;
+  --aggrio-control-option-background: #1b2533;
+  --aggrio-card-shadow: 0 12px 30px rgb(0 0 0 / 24%);
+  --aggrio-success: #bbf7d0;
+  --aggrio-success-background: #14342a;
+  --aggrio-success-border: #28634b;
+  --aggrio-danger: #fecaca;
+  --aggrio-danger-background: #3b202b;
+  --aggrio-danger-border: #7f3545;
+  --aggrio-warning: #fde68a;
+  --aggrio-warning-background: #392e1d;
+  --aggrio-warning-border: #70572c;
+}

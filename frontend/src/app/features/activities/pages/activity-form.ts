@@ -105,12 +105,14 @@ export class ActivityForm implements OnInit {
       return;
     }
 
+    const motivo = this.isEdit() ? window.prompt('Motivo de esta corrección; se conservará el valor anterior en el historial') : '';
+    if (this.isEdit() && !motivo?.trim()) return;
     this.isSaving.set(true);
     this.error.set('');
 
     const payload = this.buildPayload();
     const request = this.isEdit() && this.actividadId
-      ? this.actividadAdminService.updateActividad(this.actividadId, payload)
+      ? this.actividadAdminService.updateActividad(this.actividadId, payload, motivo ?? '')
       : this.actividadAdminService.createActividad(payload);
 
     request.subscribe({

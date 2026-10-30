@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\AuthenticatorDevice;
+use App\Models\TrustedDevice;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -12,7 +15,7 @@ use Laravel\Sanctum\PersonalAccessToken;
  *
  * Cada login entrega DOS tokens:
  *   - access  : vida corta, es el que firma todas las peticiones normales.
- *   - refresh : vida larga, sólo sirve para pedir un par nuevo en /api/auth/refresh.
+ *   - refresh : vida larga, renueva el par por el transporte nativo o la cookie web.
  *
  * Ambos comparten un "session id" incrustado en el nombre del token, de modo que
  * cerrar sesión o rotar el par afecta exactamente al dispositivo correspondiente
@@ -36,7 +39,13 @@ class ApiTokenService
      */
     public function issue(User $user, ?string $deviceName = null): array
     {
-        return $this->createPair($user, $this->sanitizeDeviceName($deviceName), Str::random(16));
+        return DB::transaction(function () use ($user, $deviceName) {
+            $locked = User::lockForUpdate()->findOrFail($user->id);
+            abort_unless($locked->isActive(), 403, 'Tu cuenta está suspendida.');
+            abort_unless(hash_equals((string) $locked->getRawOriginal('password'), (string) $user->getRawOriginal('password')), 401, 'La contraseña cambió. Vuelve a iniciar sesión.');
+
+            return $this->createPair($locked, $this->sanitizeDeviceName($deviceName), Str::random(16), request()->routeIs('web.auth.*'));
+        }, 3);
     }
 
     /**
@@ -47,11 +56,18 @@ class ApiTokenService
      */
     public function rotate(User $user, PersonalAccessToken $refreshToken): array
     {
-        [$deviceName, $sessionId] = $this->parseName($refreshToken->name);
+        return DB::transaction(function () use ($user, $refreshToken) {
+            $user = User::lockForUpdate()->findOrFail($user->id);
+            abort_unless($user->isActive(), 403, 'Tu cuenta está suspendida.');
+            $locked = PersonalAccessToken::whereKey($refreshToken->id)->lockForUpdate()->first();
+            abort_unless($locked && (! $locked->expires_at || $locked->expires_at->isFuture()), 401, 'La sesión ya fue renovada o caducó.');
+            [$deviceName, $sessionId] = $this->parseName($locked->name);
+            $this->revokeSession($user, $sessionId);
 
-        $this->revokeSession($user, $sessionId);
+            $web = in_array('web:session', $locked->abilities ?? [], true);
 
-        return $this->createPair($user, $deviceName, Str::random(16));
+            return $this->createPair($user, $deviceName, $web ? $sessionId : Str::random(16), $web);
+        }, 3);
     }
 
     /**
@@ -59,9 +75,13 @@ class ApiTokenService
      */
     public function revokeSession(User $user, string $sessionId): void
     {
-        $user->tokens()
-            ->where('name', 'like', '%'.self::SEPARATOR.$sessionId.self::SEPARATOR.'%')
-            ->delete();
+        DB::transaction(function () use ($user, $sessionId) {
+            // Serialize logout with refresh so rotation cannot recreate a closed session.
+            User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $user->tokens()
+                ->where('name', 'like', '%'.self::SEPARATOR.$sessionId.self::SEPARATOR.'%')
+                ->delete();
+        }, 3);
     }
 
     /**
@@ -69,7 +89,13 @@ class ApiTokenService
      */
     public function revokeAll(User $user): void
     {
-        $user->tokens()->delete();
+        DB::transaction(function () use ($user) {
+            User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $user->tokens()->delete();
+            TrustedDevice::where('user_id', $user->id)->delete();
+            $user->twoFactorChallenges()->delete();
+            AuthenticatorDevice::where('user_id', $user->id)->whereNull('confirmed_at')->delete();
+        }, 3);
     }
 
     /**
@@ -93,20 +119,21 @@ class ApiTokenService
     /**
      * @return array<string, mixed>
      */
-    private function createPair(User $user, string $deviceName, string $sessionId): array
+    private function createPair(User $user, string $deviceName, string $sessionId, bool $web = false): array
     {
-        $accessExpiresAt = Carbon::now()->addMinutes($this->accessTtlMinutes());
+        $accessMinutes = $web ? max(1, min(60, (int) config('web_session.access_minutes', 15))) : $this->accessTtlMinutes();
+        $accessExpiresAt = Carbon::now()->addMinutes($accessMinutes);
         $refreshExpiresAt = Carbon::now()->addMinutes($this->refreshTtlMinutes());
 
         $access = $user->createToken(
             $this->buildName($deviceName, $sessionId, 'access'),
-            [self::ACCESS_ABILITY],
+            $web ? [self::ACCESS_ABILITY, 'web:session'] : [self::ACCESS_ABILITY],
             $accessExpiresAt,
         );
 
         $refresh = $user->createToken(
             $this->buildName($deviceName, $sessionId, 'refresh'),
-            [self::REFRESH_ABILITY],
+            $web ? [self::REFRESH_ABILITY, 'web:session'] : [self::REFRESH_ABILITY],
             $refreshExpiresAt,
         );
 
@@ -121,7 +148,7 @@ class ApiTokenService
             'token' => $access->plainTextToken,
             'type' => 'Bearer',
 
-            'expires_in' => $this->accessTtlMinutes() * 60,
+            'expires_in' => $accessMinutes * 60,
             'expires_at' => $accessExpiresAt->toIso8601String(),
             'refresh_expires_in' => $this->refreshTtlMinutes() * 60,
             'refresh_expires_at' => $refreshExpiresAt->toIso8601String(),

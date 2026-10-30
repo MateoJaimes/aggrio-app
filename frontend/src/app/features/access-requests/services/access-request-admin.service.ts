@@ -11,11 +11,21 @@ export class AccessRequestAdminService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/admin/access-requests`;
 
-  getAccessRequests(): Observable<ApiResponse<AccessRequest[]>> {
-    return this.http.get<ApiResponse<AccessRequest[]>>(this.baseUrl);
+  getAccessRequests(): Observable<
+    ApiResponse<AccessRequest[]> & { delivery?: { configured: boolean; local_preview: boolean; console_reset?: boolean } }
+  > {
+    return this.http.get<
+      ApiResponse<AccessRequest[]> & { delivery?: { configured: boolean; local_preview: boolean; console_reset?: boolean } }
+    >(this.baseUrl);
   }
 
   updateStatus(id: number, action: AccessRequestAction): Observable<ApiResponse<AccessRequest>> {
     return this.http.patch<ApiResponse<AccessRequest>>(`${this.baseUrl}/${id}/status`, { action });
+  }
+  resend(id: number, resetPassword = false) {
+    return this.http.post<ApiResponse<AccessRequest>>(`${this.baseUrl}/${id}/invitation`, {reset_password: resetPassword});
+  }
+  preview(id: number) {
+    return this.http.get<ApiResponse<{ html: string }>>(`${this.baseUrl}/${id}/invitation-preview`);
   }
 }

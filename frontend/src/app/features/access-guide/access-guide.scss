@@ -1,0 +1,65 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+  color: var(--aggrio-ink);
+  background: var(--aggrio-page-background);
+}
+.guide-card {
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  background: var(--aggrio-surface);
+  border: 1px solid var(--aggrio-border);
+  border-radius: 1rem;
+}
+p,
+dd {
+  color: var(--aggrio-muted);
+  line-height: 1.7;
+}
+a {
+  color: var(--aggrio-link);
+}
+.flow-list {
+  list-style: decimal;
+  padding-left: 1.5rem;
+}
+.flow-list li {
+  padding: 0.75rem 0 1rem 0.5rem;
+}
+.flow-list li::marker {
+  color: var(--aggrio-link);
+  font-weight: 800;
+}
+.flow-list strong {
+  font-size: 1.05rem;
+}
+.flow-list p {
+  margin: 0.5rem 0;
+}
+summary {
+  cursor: pointer;
+  font-weight: 750;
+}
+dl div {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--aggrio-border);
+}
+dt {
+  font-weight: 750;
+}
+dd {
+  margin: 0.5rem 0 0;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+td,
+th {
+  padding: 0.9rem;
+  border-bottom: 1px solid var(--aggrio-border);
+  text-align: left;
+}
+.table-wrap {
+  overflow-x: auto;
+}

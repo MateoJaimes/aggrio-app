@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Lote;
 use App\Models\DispositivoIot;
 use App\Models\LecturaIot;
-use Illuminate\Http\Request;
+use App\Models\Lote;
+use App\Services\FieldAccess;
+use App\Services\TelemetryRules;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class LecturaIotApiController extends Controller
@@ -34,7 +37,7 @@ class LecturaIotApiController extends Controller
 
         $request->validate([
             'lote_id' => 'nullable|integer|exists:lotes,id',
-            'tipo_medicion' => 'nullable|in:' . implode(',', self::TIPOS_MEDICION),
+            'tipo_medicion' => 'nullable|in:'.implode(',', self::TIPOS_MEDICION),
         ]);
 
         $lecturas = LecturaIot::with(['lote.finca.user'])
@@ -84,7 +87,10 @@ class LecturaIotApiController extends Controller
             return $this->adminAccessDenied();
         }
 
-        $lectura = LecturaIot::create($this->validateAdminLectura($request));
+        $data = $this->validateAdminLectura($request);
+        app(FieldAccess::class)->entity($request, 'lote', $data['lote_id'], true);
+        TelemetryRules::validate($data);
+        $lectura = LecturaIot::create($data + ['origen' => 'manual', 'received_at' => now()]);
 
         return response()->json([
             'success' => true,
@@ -108,7 +114,11 @@ class LecturaIotApiController extends Controller
             return $this->lecturaNoEncontrada();
         }
 
-        $lectura->update($this->validateAdminLectura($request));
+        $request->validate(['motivo' => 'required|string|max:1000']);
+        $data = $this->validateAdminLectura($request);
+        abort_if((int) $data['lote_id'] !== $lectura->lote_id, 422, 'No se puede trasladar una lectura.');
+        TelemetryRules::validate($data);
+        $lectura->update($data);
 
         return response()->json([
             'success' => true,
@@ -132,6 +142,7 @@ class LecturaIotApiController extends Controller
             return $this->lecturaNoEncontrada();
         }
 
+        $request->validate(['motivo' => 'required|string|max:1000']);
         $lectura->delete();
 
         return response()->json([
@@ -154,14 +165,17 @@ class LecturaIotApiController extends Controller
 
         // Validación estricta de los datos del sensor
         $datos = $request->validate([
-            'lote_id'         => [$dispositivo ? 'nullable' : 'required', 'integer'],
+            'event_id' => [app()->isProduction() ? 'required' : 'nullable', 'string', 'max:80'],
+            'fecha_medicion' => 'nullable|date|before_or_equal:now',
+            'lote_id' => [$dispositivo ? 'nullable' : 'required', 'integer'],
             'mac_dispositivo' => 'nullable|string|max:50',
-            'tipo_medicion'   => 'required|string|in:' . implode(',', self::TIPOS_MEDICION),
-            'valor'           => self::REGLA_VALOR,
-            'unidad'          => 'required|string|max:10'
+            'tipo_medicion' => 'required|string|in:'.implode(',', self::TIPOS_MEDICION),
+            'valor' => self::REGLA_VALOR,
+            'unidad' => 'required|string|max:10',
         ]);
 
         $loteId = $dispositivo?->lote_id ?? (int) $datos['lote_id'];
+        TelemetryRules::validate($datos);
 
         // Sólo se aceptan lecturas de lotes de fincas aprobadas. El mismo mensaje
         // para "no existe" y "no aprobada" evita que sirva para descubrir IDs.
@@ -172,19 +186,35 @@ class LecturaIotApiController extends Controller
         }
 
         // Guardar la lectura en el Data Warehouse
-        $lectura = LecturaIot::create([
-            'lote_id'         => $loteId,
-            'mac_dispositivo' => $dispositivo?->mac_dispositivo ?? $datos['mac_dispositivo'] ?? null,
-            'tipo_medicion'   => $datos['tipo_medicion'],
-            'valor'           => $datos['valor'],
-            'unidad'          => $datos['unidad'],
-            'fecha_medicion'  => now() // Marca de tiempo exacta del servidor
-        ]);
+        $lectura = DB::transaction(function () use ($datos, $dispositivo, $loteId) {
+            if ($dispositivo) {
+                DispositivoIot::whereKey($dispositivo->id)->lockForUpdate()->firstOrFail();
+                if (! empty($datos['event_id'])) {
+                    $existing = LecturaIot::withTrashed()->where('dispositivo_id', $dispositivo->id)->where('event_id', $datos['event_id'])->first();
+                    if ($existing) {
+                        abort_if($existing->tipo_medicion !== $datos['tipo_medicion'] || (float) $existing->valor !== (float) $datos['valor'] || $existing->unidad !== $datos['unidad'], 409, 'Evento repetido con otros datos.');
+
+                        return $existing;
+                    }
+                }
+            }
+
+            return LecturaIot::create([
+                'lote_id' => $loteId,
+                'mac_dispositivo' => $dispositivo?->mac_dispositivo ?? $datos['mac_dispositivo'] ?? null,
+                'tipo_medicion' => $datos['tipo_medicion'],
+                'valor' => $datos['valor'],
+                'unidad' => $datos['unidad'],
+                'fecha_medicion' => $datos['fecha_medicion'] ?? now(),
+                'received_at' => now(), 'event_id' => $datos['event_id'] ?? null,
+                'dispositivo_id' => $dispositivo?->id, 'origen' => $dispositivo ? 'dispositivo' : 'legado',
+            ]);
+        }, 3);
 
         return response()->json([
             'success' => true,
             'message' => 'Métrica de telemetría almacenada correctamente.',
-            'data'    => $lectura
+            'data' => $lectura,
         ], 201);
     }
 
@@ -196,22 +226,22 @@ class LecturaIotApiController extends Controller
         // Seguridad: Verificar que el lote pertenezca a una finca propiedad del usuario autenticado
         $lote = Lote::with('finca')->where('id', $lote_id)->first();
 
-        if (!$lote || $lote->finca->user_id !== $request->user()->id) {
+        if (! $lote || $lote->finca->user_id !== $request->user()->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Lote no encontrado o acceso denegado.'
+                'message' => 'Lote no encontrado o acceso denegado.',
             ], 404);
         }
 
         // Obtener las últimas 50 lecturas del lote para no saturar la pantalla del celular
         $lecturas = $lote->lecturasIot()
-                         ->orderBy('fecha_medicion', 'desc')
-                         ->take(50)
-                         ->get();
+            ->orderBy('fecha_medicion', 'desc')
+            ->take(50)
+            ->get();
 
         return response()->json([
             'success' => true,
-            'data'    => $lecturas
+            'data' => $lecturas,
         ], 200);
     }
 
@@ -220,10 +250,10 @@ class LecturaIotApiController extends Controller
         return $request->validate([
             'lote_id' => 'required|integer|exists:lotes,id',
             'mac_dispositivo' => 'nullable|string|max:50',
-            'tipo_medicion' => 'required|in:' . implode(',', self::TIPOS_MEDICION),
+            'tipo_medicion' => 'required|in:'.implode(',', self::TIPOS_MEDICION),
             'valor' => self::REGLA_VALOR,
             'unidad' => 'required|string|max:10',
-            'fecha_medicion' => 'required|date',
+            'fecha_medicion' => 'required|date|before_or_equal:now',
         ]);
     }
 

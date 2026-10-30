@@ -1,0 +1,141 @@
+<aside class="sidebar" [class.is-open]="expanded()">
+  <div class="brand-row">
+    <a
+      class="brand"
+      [routerLink]="variant === 'admin' ? '/dashboard' : '/campo'"
+      aria-label="Aggrio, ir a mi panel"
+      ><span class="brand-mark" aria-hidden="true">A</span
+      ><span class="brand-name"
+        ><small>{{ variant === 'admin' ? 'Panel' : 'Mi campo' }}</small
+        ><strong>Aggrio</strong></span
+      ></a
+    >
+    <button
+      class="theme-toggle"
+      [class.dark]="theme.isDark()"
+      type="button"
+      (click)="theme.toggle()"
+      role="switch"
+      [attr.aria-checked]="theme.isDark()"
+      [attr.aria-label]="theme.isDark() ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
+    >
+      <span class="toggle-thumb" aria-hidden="true">
+        @if (theme.isDark()) {
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1 1M18 18l1 1M5 19l1-1M18 6l1-1" />
+          </svg>
+        } @else {
+          <svg viewBox="0 0 24 24"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z" /></svg>
+        }
+      </span>
+    </button>
+    <button
+      class="menu-toggle"
+      type="button"
+      (click)="expanded.set(!expanded())"
+      [attr.aria-expanded]="expanded()"
+      [attr.aria-label]="expanded() ? 'Cerrar menú' : 'Abrir menú'"
+      aria-controls="panel-navigation"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+    </button>
+  </div>
+  <nav
+    id="panel-navigation"
+    class="nav"
+    [attr.aria-label]="variant === 'admin' ? 'Administración' : 'Mi operación'"
+  >
+    @if (variant === 'admin') {
+      @for (item of mainAdminItems; track item.path) {
+        <a
+          class="nav-item"
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }"
+          ariaCurrentWhenActive="page"
+          (click)="expanded.set(false)"
+          ><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon" /></svg
+          ><span>{{ item.label }}</span></a
+        >
+      }
+      <a
+        class="nav-item"
+        routerLink="/produccion"
+        routerLinkActive="active"
+        (click)="expanded.set(false)"
+        >Producción</a
+      >
+      <a
+        class="nav-item"
+        routerLink="/produccion"
+        [queryParams]="{ area: 'sanidad' }"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        (click)="expanded.set(false)"
+        >Sanidad del cultivo</a
+      >
+      <button
+        class="nav-item tools-toggle"
+        type="button"
+        [attr.aria-expanded]="toolsExpanded()"
+        (click)="toolsExpanded.set(!toolsExpanded())"
+      >
+        Herramientas de supervisión
+        <span aria-hidden="true">{{ toolsExpanded() ? '−' : '+' }}</span>
+      </button>
+      @if (toolsExpanded()) {
+        <div class="nav-subgroup">
+          @for (item of supervisionItems; track item.path) {
+            <a
+              class="nav-item"
+              [routerLink]="item.path"
+              routerLinkActive="active"
+              (click)="expanded.set(false)"
+              >{{ item.label }}</a
+            >
+          }
+        </div>
+      }
+    } @else {
+      @for (item of producerItems; track item.id) {
+        @if (item.path) {
+          <a
+            class="nav-item"
+            [routerLink]="item.path"
+            [queryParams]="{ area: item.area }"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{
+              paths: 'exact',
+              queryParams: 'subset',
+              fragment: 'ignored',
+              matrixParams: 'ignored',
+            }"
+            (click)="expanded.set(false)"
+            ><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon" /></svg
+            ><span>{{ item.label }}</span></a
+          >
+        } @else {
+          <button
+            class="nav-item"
+            type="button"
+            [disabled]="disabled"
+            [class.active]="activeSection === item.id"
+            [attr.aria-current]="activeSection === item.id ? 'page' : null"
+            (click)="select(item.id)"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon" /></svg
+            ><span>{{ item.label }}</span>
+          </button>
+        }
+      }
+      @if (auth.isSuperAdmin()) {
+        <a class="nav-item" routerLink="/dashboard">Administración</a>
+      }
+    }
+    <a class="nav-item" routerLink="/guia" routerLinkActive="active" (click)="expanded.set(false)"
+      >Ayuda paso a paso</a
+    >
+  </nav>
+  <app-session-menu />
+</aside>

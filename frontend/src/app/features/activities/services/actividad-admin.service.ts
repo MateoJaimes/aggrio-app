@@ -25,11 +25,11 @@ export class ActividadAdminService {
     return this.http.post<ApiResponse<Actividad>>(this.baseUrl, payload);
   }
 
-  updateActividad(id: number, payload: ActividadPayload): Observable<ApiResponse<Actividad>> {
-    return this.http.put<ApiResponse<Actividad>>(`${this.baseUrl}/${id}`, payload);
+  updateActividad(id: number, payload: ActividadPayload, motivo: string): Observable<ApiResponse<Actividad>> {
+    return this.http.put<ApiResponse<Actividad>>(`${this.baseUrl}/${id}`, { ...payload, motivo });
   }
 
-  deleteActividad(id: number): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/${id}`);
+  deleteActividad(id: number, motivo: string): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/${id}`, { body: { motivo } });
   }
 }

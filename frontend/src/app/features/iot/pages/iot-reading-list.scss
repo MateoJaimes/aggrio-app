@@ -6,17 +6,17 @@
   display: inline-flex;
   padding: .3rem .58rem;
   border-radius: 999px;
-  color: #475569;
+  color: var(--aggrio-muted);
   font-size: .76rem;
   font-weight: 700;
-  background: #e2e8f0;
+  background: var(--aggrio-border);
   white-space: nowrap;
 }
 
-.measurement-type.temperatura { color: #991b1b; background: #fee2e2; }
+.measurement-type.temperatura { color: var(--aggrio-danger); background: #fee2e2; }
 .measurement-type.humedad_suelo { color: #1e40af; background: #dbeafe; }
-.measurement-type.radiacion_solar { color: #92400e; background: #fef3c7; }
-.measurement-type.humedad_ambiente { color: #166534; background: #dcfce7; }
+.measurement-type.radiacion_solar { color: var(--aggrio-warning); background: #fef3c7; }
+.measurement-type.humedad_ambiente { color: var(--aggrio-success); background: #dcfce7; }
 .value { white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 900px) { .filters.three-columns { grid-template-columns: 1fr; } }

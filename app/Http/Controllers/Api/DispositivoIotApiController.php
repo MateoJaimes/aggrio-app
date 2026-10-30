@@ -160,11 +160,11 @@ class DispositivoIotApiController extends Controller
             return $this->dispositivoNoEncontrado();
         }
 
-        $dispositivo->delete();
+        $dispositivo->update(['activo' => false]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Dispositivo IoT eliminado exitosamente.',
+            'message' => 'Dispositivo desactivado. Su identidad e historial se conservan.',
         ], 200);
     }
 

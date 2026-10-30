@@ -4,7 +4,7 @@
       <span class="brand-mark" aria-hidden="true">A</span>
       <span>
         <strong>Aggrio</strong>
-        <small>Panel de administración</small>
+        <small>Tu plataforma agrícola</small>
       </span>
     </div>
 
@@ -56,12 +56,28 @@
         >
           @if (showPassword()) {
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-              <path d="M9.9 5.2A10.8 10.8 0 0112 5c5.2 0 9 4.4 10 7-.4 1.1-1.3 2.5-2.7 3.8M6.2 6.2C3.9 7.7 2.5 10 2 12c1 2.6 4.8 7 10 7 1.2 0 2.3-.2 3.3-.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              <path
+                d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+              <path
+                d="M9.9 5.2A10.8 10.8 0 0112 5c5.2 0 9 4.4 10 7-.4 1.1-1.3 2.5-2.7 3.8M6.2 6.2C3.9 7.7 2.5 10 2 12c1 2.6 4.8 7 10 7 1.2 0 2.3-.2 3.3-.6"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
             </svg>
           } @else {
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+              <path
+                d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linejoin="round"
+              />
               <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8" />
             </svg>
           }
@@ -74,6 +90,7 @@
     </button>
 
     <p class="foot">
+      <a class="linkish" routerLink="/solicitar-acceso">Solicitar acceso</a> ·
       <a class="linkish" routerLink="/auth/forgot-password">¿Olvidaste tu contraseña?</a>
     </p>
     <p class="home-link">

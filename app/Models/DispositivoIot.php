@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PreservesHistory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -14,6 +15,8 @@ use Illuminate\Support\Str;
  */
 class DispositivoIot extends Model
 {
+    use PreservesHistory;
+
     public const KEY_HEADER = 'X-Device-Key';
 
     protected $table = 'dispositivos_iot';

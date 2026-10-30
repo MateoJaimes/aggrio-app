@@ -32,8 +32,8 @@ export const TIPOS_MEDICION: ReadonlyArray<{ value: TipoMedicion; label: string 
 ];
 
 export const UNIDADES_POR_MEDICION: Record<TipoMedicion, readonly string[]> = {
-  temperatura: ['°C', '°F'],
+  temperatura: ['°C'],
   humedad_suelo: ['%'],
-  radiacion_solar: ['W/m²', 'lux'],
+  radiacion_solar: ['W/m2'],
   humedad_ambiente: ['%'],
 };

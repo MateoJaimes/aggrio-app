@@ -125,12 +125,14 @@ export class IotReadingForm implements OnInit {
       return;
     }
 
+    const motivo = this.isEdit() ? window.prompt('Motivo de esta corrección; se conservará el valor anterior en el historial') : '';
+    if (this.isEdit() && !motivo?.trim()) return;
     this.isSaving.set(true);
     this.error.set('');
 
     const payload = this.buildPayload();
     const request = this.isEdit() && this.lecturaId
-      ? this.lecturaIotAdminService.updateLectura(this.lecturaId, payload)
+      ? this.lecturaIotAdminService.updateLectura(this.lecturaId, payload, motivo ?? '')
       : this.lecturaIotAdminService.createLectura(payload);
 
     request.subscribe({
@@ -173,7 +175,7 @@ export class IotReadingForm implements OnInit {
       tipo_medicion: raw.tipo_medicion,
       valor: Number(raw.valor),
       unidad: raw.unidad,
-      fecha_medicion: raw.fecha_medicion,
+      fecha_medicion: new Date(raw.fecha_medicion).toISOString(),
     };
   }
 

@@ -36,7 +36,7 @@ class IdentifyIotDevice
             return $next($request);
         }
 
-        if (config('iot.require_device_key')) {
+        if (config('iot.require_device_key') || app()->isProduction()) {
             return $this->rechazar('Falta la cabecera '.DispositivoIot::KEY_HEADER.'.');
         }
 

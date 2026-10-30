@@ -1,0 +1,1006 @@
+<div class="production-shell">
+  <app-sidebar
+    [variant]="auth.isSuperAdmin() ? 'admin' : 'producer'"
+    activeSection="produccion"
+    (sectionChange)="goCampo($event)"
+  />
+  <main>
+    <header class="page-heading">
+      <div>
+        <p class="eyebrow">{{ auth.isSuperAdmin() ? 'Supervisión del campo' : 'Mi campo' }}</p>
+        <h1>{{ areaDefinition().title }}</h1>
+        <p>{{ areaDefinition().intro }}</p>
+      </div>
+      <a [routerLink]="auth.isSuperAdmin() ? '/estates' : '/campo'" class="secondary button">{{
+        auth.isSuperAdmin() ? 'Ver fincas' : 'Volver al inicio'
+      }}</a>
+    </header>
+    @if (error() && !modal() && !detail()) {
+      <div class="message error" role="alert">{{ error() }}</div>
+    }
+    @if (notice()) {
+      <div class="message success" role="status">
+        {{ notice()
+        }}<button class="text-button" (click)="notice.set('')" aria-label="Cerrar aviso">×</button>
+      </div>
+    }
+    @if (busy()) {
+      <p role="status">Cargando…</p>
+    }
+    @if (auth.isSuperAdmin()) {
+      <nav class="area-nav" aria-label="Áreas de producción">
+        <button
+          class="secondary"
+          (click)="changeSection('cultivos')"
+          [class.selected]="area() === 'cultivos'"
+        >
+          Cultivos</button
+        ><button
+          class="secondary"
+          (click)="changeSection('labores')"
+          [class.selected]="area() === 'trabajo'"
+        >
+          Trabajo</button
+        ><button
+          class="secondary"
+          (click)="changeSection('resumen')"
+          [class.selected]="area() === 'dinero'"
+        >
+          Cuentas</button
+        ><button
+          class="secondary"
+          (click)="changeSection('parametros')"
+          [class.selected]="area() === 'detalles'"
+        >
+          Datos de finca
+        </button>
+        <button
+          class="secondary"
+          (click)="changeSection('sanidad_casos')"
+          [class.selected]="area() === 'sanidad'"
+        >
+          Sanidad
+        </button>
+      </nav>
+    }
+    <div class="context-bar">
+      <div>
+        <small>Estás trabajando en</small
+        ><strong>{{ farmId ? farmName(farmId) : 'Todas las fincas' }}</strong>
+        @if (plotId) {
+          <span> · {{ plotName(plotId) }}</span>
+        }
+        @if (cropId) {
+          <span> · {{ relationName(cropId) }}</span>
+        }
+      </div>
+      @if ((data()?.fincas?.length ?? 0) > 0) {
+        <label
+          >Finca<select [(ngModel)]="farmId" (ngModelChange)="filterChanged('farm')">
+            <option [ngValue]="0">Todas las fincas</option>
+            @for (f of data()?.fincas; track f.id) {
+              <option [ngValue]="f.id">{{ f.nombre }}</option>
+            }
+          </select></label
+        >
+      }
+      <label
+        >Lote<select [(ngModel)]="plotId" (ngModelChange)="filterChanged('plot')">
+          <option [ngValue]="0">Todos los lotes</option>
+          @for (p of plots(); track p.id) {
+            <option [ngValue]="p.id">{{ p.nombre }}</option>
+          }
+        </select></label
+      >
+      <label
+        >Cultivo<select [(ngModel)]="cropId" (ngModelChange)="filterChanged('crop')">
+          <option [ngValue]="0">Todos los cultivos</option>
+          @for (c of crops(); track c.id) {
+            <option [ngValue]="c.id">{{ c.nombre }} · {{ plotName(c.lote_id) }}</option>
+          }
+        </select></label
+      >
+      <label class="archive-toggle"
+        ><input type="checkbox" [(ngModel)]="showArchived" (change)="page = 1" />Incluir
+        archivados</label
+      >
+    </div>
+    @if (area() === 'sanidad') {
+      <section class="card">
+        <h2>Detectar → Decidir → Revisar</h2>
+        <p>
+          Registra primero el problema, después cada medida y finalmente sus resultados. Añade
+          fotos, notas y documentos desde Ver detalle.
+        </p>
+        <p class="hint">
+          La app registra lo ocurrido. Copia los datos de aplicación y los periodos de seguridad de
+          la etiqueta y de la recomendación técnica; no genera recetas ni dosis.
+        </p>
+        <details>
+          <summary>Ver evolución de los problemas y cosechas</summary>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Problema</th>
+                  <th>Incidencia inicial</th>
+                  <th>Última revisión</th>
+                  <th>Cambio observado</th>
+                  <th>Cosechas</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of healthRecords('sanidad_casos'); track c.id) {
+                  @let progress = healthProgress(c);
+                  <tr>
+                    <td>
+                      {{ c.datos?.['problema'] }}<small>{{ relationName(c.cultivo_id) }}</small>
+                    </td>
+                    <td>{{ c.datos?.['incidencia_porcentaje'] }} %</td>
+                    <td>
+                      @if (progress.latest) {
+                        {{ progress.latest.fecha | date: 'mediumDate' }} ·
+                        {{ progress.latest.datos?.['incidencia_porcentaje'] }} % ·
+                        {{ label(progress.latest.datos?.['resultado_observado']) }}
+                      } @else {
+                        Falta revisión
+                      }
+                    </td>
+                    <td>
+                      {{
+                        progress.reduction === null
+                          ? 'Sin comparación equivalente'
+                          : progress.reduction + ' % de reducción'
+                      }}
+                    </td>
+                    <td>
+                      <button class="secondary" (click)="healthHarvests(c)">
+                        Ver cosechas del cultivo
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="5">
+                      Registra un problema y su primera medición para empezar el historial.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <p class="hint">
+            Incidencia = unidades afectadas / revisadas × 100. Solo se compara la misma unidad y
+            descripción de muestreo. Una reducción negativa significa aumento. Esta comparación es
+            descriptiva: no prueba por sí sola que un tratamiento causó un cambio en la cosecha.
+          </p>
+        </details>
+      </section>
+    }
+    <nav class="tabs" aria-label="Secciones de esta área">
+      @for (entry of entries(); track entry[0]) {
+        <button
+          [class.active]="section() === entry[0]"
+          [attr.aria-current]="section() === entry[0] ? 'page' : null"
+          (click)="changeSection(entry[0])"
+        >
+          {{ entry[1].label }}
+        </button>
+      }
+    </nav>
+    <div class="section-heading">
+      <div>
+        <h2>{{ title() }}</h2>
+        <p class="section-hint">{{ sectionHint() }}</p>
+      </div>
+      @if (section() !== 'resumen' && section() !== 'parametros') {
+        <button (click)="open()" [disabled]="busy() || !canCreate()">{{ actionLabel() }}</button>
+      }
+    </div>
+    @if (!busy() && data() && !data()!.fincas.length) {
+      <section class="card empty">
+        <h3>Primero necesitas una finca</h3>
+        <p>
+          {{
+            auth.isSuperAdmin()
+              ? 'Aprueba una solicitud de acceso para vincular la primera finca al productor.'
+              : 'Vincula tu finca y completa sus datos básicos para empezar.'
+          }}
+        </p>
+        <a
+          [routerLink]="auth.isSuperAdmin() ? '/access-requests' : '/campo'"
+          [queryParams]="auth.isSuperAdmin() ? {} : { seccion: 'fincas' }"
+          >{{ auth.isSuperAdmin() ? 'Revisar solicitudes' : 'Ir a mi finca' }} →</a
+        >
+      </section>
+    }
+    @if (preparationHint()) {
+      <section class="card">
+        <p>{{ preparationHint() }}</p>
+        <a
+          [routerLink]="auth.isSuperAdmin() ? '/estates' : '/campo'"
+          [queryParams]="auth.isSuperAdmin() ? {} : { seccion: 'fincas' }"
+          >{{ auth.isSuperAdmin() ? 'Revisar finca' : 'Preparar mi finca' }} →</a
+        >
+      </section>
+    }
+    @if (section() === 'resumen') {
+      <h3>
+        {{
+          cropId ? 'Cuentas del cultivo: ' + relationName(cropId) : 'Cuentas de todos los cultivos'
+        }}
+      </h3>
+      @if (!cropId) {
+        <p class="hint">
+          Elige un cultivo arriba para consultar únicamente su inversión, ventas y ganancia. Los
+          gastos sin asignar no se cargan automáticamente a un cultivo.
+        </p>
+      }
+      @if (report(); as r) {
+        <div class="kpis primary-kpis">
+          <article class="card">
+            <small>Invertido en producción</small
+            ><strong>{{ currency(r['costos_produccion']) }}</strong>
+          </article>
+          <article class="card">
+            <small>Ventas registradas</small><strong>{{ currency(r['ventas']) }}</strong>
+          </article>
+          <article class="card" [class.loss]="r['resultado'] < 0">
+            <small>Ganancia de producción</small><strong>{{ currency(r['resultado']) }}</strong>
+          </article>
+          <article class="card">
+            <small>Total invertido, incluidos equipos</small
+            ><strong>{{ currency(r['desembolso_total']) }}</strong>
+          </article>
+        </div>
+        <p class="hint">
+          La ganancia de producción es lo vendido menos los gastos de producción del cultivo
+          seleccionado. El total invertido también incluye equipos e infraestructura; no se
+          descuentan de nuevo de esa ganancia.
+        </p>
+        <div class="payment-summary">
+          <p>
+            Ya te pagaron <strong>{{ currency(r['cobrado']) }}</strong>
+          </p>
+          <p>
+            Pendiente de las ventas seleccionadas
+            <strong>{{ currency(r['por_cobrar_ventas_periodo']) }}</strong>
+          </p>
+          <button class="secondary" (click)="changeSection('cobros')">Ver pagos recibidos</button>
+        </div>
+        <details class="card">
+          <summary>Ver el detalle de mis cuentas</summary>
+          <div class="kpis">
+            <article>
+              <small>Equipos e infraestructura</small
+              ><strong>{{ currency(r['inversion']) }}</strong>
+            </article>
+            <article>
+              <small>Presupuesto del trabajo</small
+              ><strong>{{ currency(r['presupuesto']) }}</strong>
+            </article>
+            <article>
+              <small>Costo por unidad recogida</small
+              ><strong>{{
+                r['costo_por_unidad'] === null
+                  ? 'Aún no disponible'
+                  : currency(r['costo_por_unidad'])
+              }}</strong>
+            </article>
+          </div>
+          <p class="hint">{{ r['nota'] }}</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cultivo</th>
+                  <th>Gastos</th>
+                  <th>Equipos e infraestructura</th>
+                  <th>Total invertido</th>
+                  <th>Ventas</th>
+                  <th>Ganancia de producción</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of r['por_cultivo']; track c['cultivo_id']) {
+                  <tr>
+                    <td>{{ c['nombre'] }}</td>
+                    <td>{{ currency(c['costos']) }}</td>
+                    <td>{{ currency(c['inversion']) }}</td>
+                    <td>{{ currency(c['costos'] + c['inversion']) }}</td>
+                    <td>{{ currency(c['ventas']) }}</td>
+                    <td>{{ currency(c['ventas'] - c['costos']) }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="6">Los resultados aparecerán al registrar gastos o ventas.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <button class="secondary" (click)="export()">Descargar movimientos</button>
+        </details>
+        <details class="card">
+          <summary>Comparar lo esperado con lo cosechado</summary>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Siembra o corte</th>
+                  <th>Esperado</th>
+                  <th>Recogido</th>
+                  <th>Unidad</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of r['rendimientos']; track c.id) {
+                  <tr>
+                    <td>{{ c.nombre }}</td>
+                    <td>{{ c.esperado }}</td>
+                    <td>{{ c.real }}</td>
+                    <td>{{ c.unidad }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4">Registra tu primera cosecha para ver la comparación.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </details>
+      }
+    } @else if (section() === 'parametros') {
+      <div class="two-columns">
+        <section class="card">
+          <h3>Datos de la finca</h3>
+          @for (f of data()?.fincas; track f.id) {
+            @if (!farmId || f.id === farmId) {
+              <article class="entity">
+                <strong>{{ f.nombre }}</strong>
+                <p>Ubicación, tenencia, agua y uso del terreno. Puedes completarlos por partes.</p>
+                <div class="actions">
+                  <button (click)="openParameters('finca', f)">Completar datos</button
+                  ><button class="secondary" (click)="history('finca', f)">Ver ficha</button>
+                </div>
+              </article>
+            }
+          }
+        </section>
+        <section class="card">
+          <h3>Datos de los lotes</h3>
+          @for (p of plots(); track p.id) {
+            <article class="entity">
+              <strong>{{ p.nombre }}</strong
+              ><small
+                >{{ p.hectareas }} ha ·
+                {{ label(p.parametros?.['ambiente'] ?? 'Ambiente por completar') }}</small
+              >
+              <div class="actions">
+                <button (click)="openParameters('lote', p)" [disabled]="!!p.deleted_at">
+                  Completar datos</button
+                ><button class="secondary" (click)="history('lote', p)">Ver ficha</button>
+              </div>
+            </article>
+          } @empty {
+            <p>Los lotes se crean desde Mi finca.</p>
+            <a routerLink="/campo" [queryParams]="{ seccion: 'fincas' }">Ir a Mi finca →</a>
+          }
+        </section>
+      </div>
+    } @else {
+      @if (section() === 'cultivos' && !plots().length && data()?.fincas?.length) {
+        <p class="message">
+          Necesitas crear un lote antes de añadir el cultivo.
+          <a routerLink="/campo" [queryParams]="{ seccion: 'fincas' }">Crear mi lote →</a>
+        </p>
+      }
+      <div class="card table-wrap">
+        <div class="list-toolbar">
+          <label class="search"
+            >Buscar<input
+              type="search"
+              [(ngModel)]="search"
+              (ngModelChange)="page = 1"
+              placeholder="Buscar por nombre…" /></label
+          ><button class="text-button" (click)="export()">Descargar lista</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>
+                {{
+                  section() === 'cultivos'
+                    ? 'Cultivo'
+                    : section() === 'labores'
+                      ? 'Trabajo'
+                      : 'Registro'
+                }}
+              </th>
+              <th>Fecha</th>
+              <th>
+                {{
+                  ['costos', 'ventas', 'cobros', 'repartos'].includes(section())
+                    ? 'Valor'
+                    : 'Estado'
+                }}
+              </th>
+              <th><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of visibleRows(); track row.id) {
+              <tr>
+                <td>
+                  <strong>{{ row.nombre }}</strong
+                  ><small
+                    >{{ plotName(row.lote_id) }}
+                    @if (section() === 'cultivos') {
+                      · {{ label(row.datos?.['tipo']) }}
+                    } @else {
+                      {{ relationName(row.cultivo_id) }}
+                    }
+                  </small>
+                </td>
+                <td>{{ row.fecha | date: 'mediumDate' }}</td>
+                <td>
+                  @if (['costos', 'ventas', 'cobros', 'repartos'].includes(section())) {
+                    {{ currency(row.total) }}
+                  } @else {
+                    <span class="badge">{{
+                      row.deleted_at ? 'Archivado' : label(row.estado)
+                    }}</span>
+                  }
+                </td>
+                <td>
+                  <div class="actions">
+                    <button class="secondary" (click)="history('registro', row)">
+                      Ver detalle
+                    </button>
+                    @if (section() === 'sanidad_casos' && !row.deleted_at) {
+                      <button
+                        class="secondary"
+                        (click)="openHealthCase(row, 'sanidad_tratamientos')"
+                      >
+                        Registrar medida
+                      </button>
+                      <button
+                        class="secondary"
+                        (click)="openHealthCase(row, 'sanidad_seguimientos')"
+                      >
+                        Revisar resultado
+                      </button>
+                    }
+                    <button
+                      class="text-button"
+                      (click)="open(row)"
+                      [disabled]="busy() || !!row.deleted_at"
+                    >
+                      Editar
+                    </button>
+                    @if (['cultivos', 'ciclos'].includes(section()) && !row.deleted_at) {
+                      <details class="row-menu">
+                        <summary>Más opciones</summary>
+                        <button class="secondary" (click)="guide(row)" [disabled]="busy()">
+                          Preparar lista de tareas
+                        </button>
+                        @if (section() === 'cultivos') {
+                          <button class="secondary" (click)="newCycle(row)">
+                            Registrar otra siembra o corte
+                          </button>
+                        }
+                      </details>
+                    }
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="4" class="empty">
+                  <h3>{{ emptyTitle() }}</h3>
+                  <p>{{ sectionHint() }}</p>
+                  @if (canCreate()) {
+                    <button (click)="open()">{{ actionLabel() }}</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        <div class="pagination">
+          <span>{{ rows().length }} registros · Página {{ page }} de {{ pages() }}</span
+          ><button class="secondary" [disabled]="page <= 1" (click)="page = page - 1">
+            Anterior</button
+          ><button class="secondary" [disabled]="page >= pages()" (click)="page = page + 1">
+            Siguiente
+          </button>
+        </div>
+      </div>
+      @if (section() === 'labores' && legacyActivities().length) {
+        <details class="card">
+          <summary>Trabajo registrado anteriormente ({{ legacyActivities().length }})</summary>
+          @for (activity of legacyActivities(); track activity.id) {
+            <article class="entity">
+              <strong>{{ label(activity.tipo_actividad) }}</strong
+              ><small
+                >{{ plotName(activity.lote_id) }} · {{ activity.fecha }} ·
+                {{ currency(activity.costo) }}</small
+              >
+            </article>
+          }
+        </details>
+      }
+    }
+    @if (area() === 'dinero' && section() !== 'repartos') {
+      <details class="advanced-options">
+        <summary>Opciones avanzadas</summary>
+        <button class="secondary" (click)="changeSection('repartos')">
+          Repartir un gasto entre cultivos
+        </button>
+      </details>
+    }
+  </main>
+</div>
+@if (modal()) {
+  <div class="overlay">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="form-title">
+      <header>
+        <div>
+          <p class="eyebrow">{{ title() }}</p>
+          <h2 id="form-title">
+            {{ editing ? 'Editar ' + title() : actionLabel() }}
+            {{ section() === 'parametros' ? editing?.nombre : '' }}
+          </h2>
+        </div>
+        <button type="button" class="secondary" [disabled]="busy()" (click)="modal.set(false)">
+          Cerrar
+        </button>
+      </header>
+      @if (error()) {
+        <div class="message error" role="alert">{{ error() }}</div>
+      }
+      <div class="wizard-context">{{ currentContext() }}</div>
+      <div class="wizard-progress">
+        <span>Paso {{ formStep + 1 }} de {{ steps().length }}</span
+        ><strong>{{ steps()[formStep].title }}</strong>
+      </div>
+      <form #recordForm="ngForm" (ngSubmit)="submitStep()">
+        <div class="form-grid">
+          @if (section() !== 'parametros') {
+            @if (formStep === 0 && (data()?.fincas?.length ?? 0) > 1) {
+              <label
+                >Finca<select
+                  name="finca_id"
+                  [(ngModel)]="model['finca_id']"
+                  (ngModelChange)="modelChanged('finca_id')"
+                  required
+                  [disabled]="!!editing"
+                >
+                  <option [ngValue]="null">Selecciona tu finca</option>
+                  @for (f of data()?.fincas; track f.id) {
+                    <option
+                      [ngValue]="f.id"
+                      [disabled]="f.estado !== 'aprobado' && section() !== 'catalogos'"
+                    >
+                      {{ f.nombre }}
+                    </option>
+                  }
+                </select></label
+              >
+            }
+            @if (stepHas('$name') || (showOptional && formStep === steps().length - 1)) {
+              <label
+                >Nombre o referencia (opcional)<input
+                  name="nombre"
+                  [(ngModel)]="model['nombre']"
+                  maxlength="255"
+                  placeholder="Se completa automáticamente si lo dejas vacío"
+              /></label>
+            }
+            @if (stepHas('$fecha')) {
+              <label
+                >{{
+                  section() === 'cultivos' || section() === 'ciclos'
+                    ? 'Fecha de siembra'
+                    : section() === 'labores'
+                      ? model['estado'] === 'terminado'
+                        ? '¿Cuándo lo hiciste?'
+                        : '¿Para qué día?'
+                      : 'Fecha'
+                }}
+                *<input name="fecha" type="date" [(ngModel)]="model['fecha']" required
+              /></label>
+            }
+            @if (stepHas('$state') || (showOptional && editing && section() === 'ciclos')) {
+              <label
+                >{{
+                  section() === 'labores'
+                    ? '¿Ya lo hiciste o lo estás planeando?'
+                    : section().startsWith('sanidad_')
+                      ? 'Estado del registro'
+                      : 'Estado de la siembra'
+                }}<select
+                  name="estado"
+                  [(ngModel)]="model['estado']"
+                  (ngModelChange)="modelChanged('estado')"
+                >
+                  @if (section() === 'labores' && !editing) {
+                    <option value="terminado">Ya lo hice</option>
+                    <option value="pendiente">Lo voy a hacer</option>
+                  } @else {
+                    @for (s of states(); track s) {
+                      <option [value]="s">{{ label(s) }}</option>
+                    }
+                  }
+                </select></label
+              >
+            }
+            @if (stepHas('$total')) {
+              @if (!detailedCosts) {
+                <label
+                  >¿Cuánto pagaste en total? (COP) *<input
+                    name="quick-total"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    [(ngModel)]="quickTotal"
+                    required
+                    placeholder="Ej. 45000"
+                /></label>
+              }
+              <label class="check wide"
+                ><input type="checkbox" name="detailed-costs" [(ngModel)]="detailedCosts" />Calcular
+                por cantidad y precio por unidad</label
+              >
+            }
+            @if (stepHas('$payment')) {
+              <label
+                >¿Cómo te pagaron?<select name="payment-mode" [(ngModel)]="paymentMode">
+                  <option value="completo">Me pagaron todo</option>
+                  <option value="parcial">Me pagaron una parte</option>
+                  <option value="pendiente">Todavía no me han pagado</option>
+                </select></label
+              >
+            }
+          }
+          @for (f of currentFields(); track f.key) {
+            @if (visible(f)) {
+              <label [class.wide]="f.type === 'geojson'"
+                >{{ fieldLabel(f) }} {{ f.required ? '*' : '' }}
+                @switch (f.type) {
+                  @case ('select') {
+                    <select [name]="f.key" [(ngModel)]="model[f.key]" [required]="f.required">
+                      <option [ngValue]="null">Selecciona</option>
+                      @for (o of options(f); track o) {
+                        <option [value]="o">{{ label(o) }}</option>
+                      }
+                    </select>
+                  }
+                  @case ('relation') {
+                    <select
+                      [name]="f.key"
+                      [(ngModel)]="model[f.key]"
+                      (ngModelChange)="modelChanged(f.key)"
+                      [required]="f.required"
+                      [disabled]="!!editing"
+                    >
+                      <option [ngValue]="null">{{ emptyRelationLabel(f) }}</option>
+                      @for (o of relations(f); track o.id) {
+                        <option [ngValue]="o.id">
+                          {{ o.nombre || o.tipo_actividad }} {{ o.fecha }}
+                        </option>
+                      }
+                    </select>
+                  }
+                  @case ('catalog') {
+                    <input
+                      [name]="f.key"
+                      [(ngModel)]="model[f.key]"
+                      (ngModelChange)="modelChanged(f.key)"
+                      [attr.list]="'options-' + f.key"
+                      [required]="f.required"
+                      maxlength="255"
+                      placeholder="Selecciona o escribe una opción"
+                    /><datalist [id]="'options-' + f.key">
+                      @for (o of catalog(f); track o) {
+                        <option [value]="o"></option>
+                      }
+                    </datalist>
+                  }
+                  @case ('boolean') {
+                    <select [name]="f.key" [(ngModel)]="model[f.key]">
+                      <option [ngValue]="null">Sin información</option>
+                      <option [ngValue]="true">Sí</option>
+                      <option [ngValue]="false">No</option>
+                    </select>
+                  }
+                  @case ('date') {
+                    <input
+                      [name]="f.key"
+                      type="date"
+                      [(ngModel)]="model[f.key]"
+                      [required]="f.required"
+                    />
+                  }
+                  @case ('geojson') {
+                    <span class="hint"
+                      >Añade al menos tres vértices. El contorno se cierra automáticamente.</span
+                    >
+                    @for (v of vertices; track $index; let i = $index) {
+                      <span class="vertex-row"
+                        ><input
+                          [name]="'latitud-vertice-' + i"
+                          type="number"
+                          min="-90"
+                          max="90"
+                          step="any"
+                          [attr.aria-label]="'Latitud del vértice ' + (i + 1)"
+                          placeholder="Latitud"
+                          [(ngModel)]="v.latitud"
+                          (ngModelChange)="updatePolygon()"
+                        /><input
+                          [name]="'longitud-vertice-' + i"
+                          type="number"
+                          min="-180"
+                          max="180"
+                          step="any"
+                          [attr.aria-label]="'Longitud del vértice ' + (i + 1)"
+                          placeholder="Longitud"
+                          [(ngModel)]="v.longitud"
+                          (ngModelChange)="updatePolygon()"
+                        /><button
+                          type="button"
+                          class="secondary"
+                          (click)="removeVertex(i)"
+                          [attr.aria-label]="'Quitar vértice ' + (i + 1)"
+                        >
+                          Quitar
+                        </button></span
+                      >
+                    }
+                    <button type="button" class="secondary" (click)="addVertex()">
+                      Añadir vértice
+                    </button>
+                    @if (vertices.length >= 3) {
+                      <svg
+                        class="contour"
+                        viewBox="0 0 200 120"
+                        role="img"
+                        aria-label="Vista del contorno del lote"
+                      >
+                        <polygon [attr.points]="contourPreview()" />
+                      </svg>
+                    }
+                  }
+                  @default {
+                    <input
+                      [name]="f.key"
+                      [type]="
+                        ['number', 'integer', 'money', 'temperature'].includes(f.type)
+                          ? 'number'
+                          : 'text'
+                      "
+                      [attr.min]="
+                        f.type === 'temperature'
+                          ? -50
+                          : ['number', 'integer', 'money'].includes(f.type)
+                            ? 0
+                            : null
+                      "
+                      [attr.step]="f.type === 'integer' ? '1' : 'any'"
+                      [readOnly]="f.key === 'costo_real' && hasCostBreakdown()"
+                      [(ngModel)]="model[f.key]"
+                      [required]="f.required"
+                    />
+                  }
+                }
+                @if (errors()[f.key]; as messages) {
+                  <small class="field-error">{{ messages.join(' ') }}</small>
+                }
+              </label>
+            }
+          }
+          @if (section() !== 'parametros' && formStep === steps().length - 1) {
+            <label class="wide"
+              >Observaciones<textarea
+                name="observaciones"
+                [(ngModel)]="model['observaciones']"
+                rows="3"
+                maxlength="5000"
+              ></textarea>
+            </label>
+          }
+        </div>
+        @if (section() === 'costos' || section() === 'ventas') {
+          <p class="calculated">
+            Total calculado:
+            <strong>{{
+              currency(
+                section() === 'costos' && !detailedCosts
+                  ? quickTotal
+                  : (model['cantidad'] || 0) * (model['precio_unitario'] || 0)
+              )
+            }}</strong>
+          </p>
+        }
+        <footer>
+          <div class="actions">
+            @if (formStep > 0) {
+              <button
+                type="button"
+                class="secondary"
+                [disabled]="busy()"
+                (click)="formStep = formStep - 1"
+              >
+                Atrás
+              </button>
+            }
+            @if (
+              formStep === steps().length - 1 &&
+              optionalFields().length &&
+              section() !== 'parametros'
+            ) {
+              <button class="text-button" type="button" (click)="showOptional = !showOptional">
+                {{ showOptional ? 'Ocultar datos opcionales' : 'Añadir más detalles (opcional)' }}
+              </button>
+            }
+          </div>
+          <div class="actions">
+            @if (section() === 'parametros' && formStep < steps().length - 1) {
+              <button type="button" class="secondary" (click)="formStep = formStep + 1">
+                Siguiente sección
+              </button>
+            }
+            <button type="submit" [disabled]="recordForm.invalid || busy()">
+              {{
+                busy()
+                  ? 'Guardando…'
+                  : section() === 'parametros'
+                    ? 'Guardar datos'
+                    : formStep < steps().length - 1
+                      ? 'Continuar'
+                      : 'Guardar'
+              }}
+            </button>
+          </div>
+        </footer>
+      </form>
+    </section>
+  </div>
+}
+@if (detail(); as d) {
+  <div class="overlay">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="history-title">
+      <header>
+        <h2 id="history-title">Trazabilidad · {{ d['entity'].nombre }}</h2>
+        <button class="secondary" [disabled]="busy()" (click)="detail.set(null)">Cerrar</button>
+      </header>
+      @if (error()) {
+        <p class="message error" role="alert">{{ error() }}</p>
+      }
+      <div class="identity">
+        <img [src]="d['qr']" alt="Código QR del registro" width="140" height="140" />
+        <div>
+          <p>{{ d['entity'].uuid }}</p>
+          <a [href]="d['url']">Abrir registro</a>
+          <p>Versión {{ d['entity'].version ?? '—' }} · {{ d['entity'].dispositivo }}</p>
+        </div>
+      </div>
+      <h3>Datos actuales</h3>
+      @if (d['entity'].datos?.incidencia_porcentaje !== undefined) {
+        <p>
+          Incidencia registrada: <strong>{{ d['entity'].datos.incidencia_porcentaje }} %</strong>
+        </p>
+      }
+      <dl class="form-grid">
+        @for (f of detailFields(); track f.key) {
+          <div>
+            <dt>{{ f.label }}</dt>
+            <dd>{{ detailValue(f) }}</dd>
+          </div>
+        }
+      </dl>
+      @if (d['entity'].edad_anos !== null && d['entity'].edad_anos !== undefined) {
+        <p>
+          Año de siembra: {{ d['entity'].fecha?.slice(0, 4) }} · Edad:
+          {{ d['entity'].edad_anos }} años.
+        </p>
+      }
+      <h3>Registros relacionados</h3>
+      @for (r of d['related']; track r.id) {
+        <button class="list-link" (click)="history('registro', r)">
+          {{ r.nombre }} · {{ label(r.tipo) }} · {{ r.fecha }}
+        </button>
+      } @empty {
+        <p>No hay movimientos relacionados.</p>
+      }
+      <h3>Evidencias</h3>
+      @for (e of evidence(); track e.id) {
+        <article class="entity">
+          <p>{{ e.contenido_texto || e.tipo_archivo }}</p>
+          <small
+            >{{ e.captured_at || e.created_at }}
+            @if (e.latitud !== null && e.latitud !== undefined) {
+              · GPS {{ e.latitud }}, {{ e.longitud }}
+            }
+          </small>
+          @if (e.ruta_archivo) {
+            <button class="secondary" (click)="download(e.id)">Descargar archivo</button>
+          }
+        </article>
+      } @empty {
+        <p>No hay evidencias adjuntas.</p>
+      }
+      <label
+        >Nota o descripción<textarea
+          [(ngModel)]="note"
+          rows="2"
+          maxlength="10000"
+        ></textarea></label
+      ><label
+        >Foto, documento, audio o video<input type="file" (change)="chooseFile($event)"
+      /></label>
+      <div class="actions">
+        <button class="secondary" (click)="captureGps()">Añadir ubicación GPS</button
+        ><button
+          [disabled]="busy() || !!d['entity'].deleted_at || (!note.trim() && !file)"
+          (click)="attach()"
+        >
+          Guardar evidencia
+        </button>
+      </div>
+      @if (gps) {
+        <p>
+          Ubicación: {{ gps.latitud }}, {{ gps.longitud }} · Precisión
+          {{ gps.gps_precision | number: '1.0-0' }} m
+        </p>
+      }
+      <h3>Historial de cambios</h3>
+      @for (h of d['history']; track h.id) {
+        <details>
+          <summary>
+            {{ h.created_at | date: 'medium' : '-0500' }} · {{ label(h.action) }} ·
+            {{ h.actor ?? 'Sistema' }}
+          </summary>
+          <p>{{ h.reason }}</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Dato</th>
+                  <th>Antes</th>
+                  <th>Después</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (change of historyChanges(h); track change.label) {
+                  <tr>
+                    <td>{{ change.label }}</td>
+                    <td>{{ change.before }}</td>
+                    <td>{{ change.after }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </details>
+      } @empty {
+        <p>Registro anterior a la ampliación del historial.</p>
+      }
+      @if (detailType === 'registro' && !d['entity'].deleted_at) {
+        <details class="archive">
+          <summary>Archivar registro</summary>
+          <p>
+            Solo se pueden archivar registros sin movimientos dependientes. El historial se
+            conserva.
+          </p>
+          <label>Motivo<input [(ngModel)]="archiveReason" maxlength="1000" /></label
+          ><button [disabled]="busy() || !archiveReason.trim()" (click)="archive()">
+            Archivar con motivo
+          </button>
+        </details>
+      }
+    </section>
+  </div>
+}

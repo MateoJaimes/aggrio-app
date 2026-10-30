@@ -84,7 +84,7 @@ class DispositivoIotAdminTest extends TestCase
         $this->assertNotNull(DispositivoIot::buscarActivoPorKey($keyNueva));
     }
 
-    public function test_desactivar_y_eliminar_un_dispositivo(): void
+    public function test_desactivar_y_retirar_un_dispositivo_conserva_su_identidad(): void
     {
         $this->comoSuperadmin();
         $lote = $this->lote();
@@ -100,7 +100,7 @@ class DispositivoIotAdminTest extends TestCase
         $this->assertNull(DispositivoIot::buscarActivoPorKey($key));
 
         $this->deleteJson("/api/admin/dispositivos-iot/{$id}")->assertOk();
-        $this->assertDatabaseMissing('dispositivos_iot', ['id' => $id]);
+        $this->assertDatabaseHas('dispositivos_iot', ['id' => $id, 'activo' => false]);
     }
 
     public function test_la_mac_no_se_puede_repetir(): void

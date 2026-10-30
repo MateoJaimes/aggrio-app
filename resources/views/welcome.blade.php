@@ -6,9 +6,7 @@
     <meta name="theme-color" content="#f4f7fc">
     <title>Aggrio</title>
     <meta name="description" content="Administra fincas, lotes, actividades y lecturas de campo desde una plataforma clara y centralizada.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/aggrio-theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 </head>
 <body>
@@ -20,10 +18,8 @@
 
         <nav class="header-actions" aria-label="Navegación principal">
             <a class="nav-link" href="#features">Plataforma</a>
-            <a class="button button-outline" href="{{ rtrim(config('app.frontend_url'), '/') }}/auth/login">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5m5 5H3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Iniciar sesión
-            </a>
+            <a class="nav-link login-link" href="{{ rtrim(config('app.frontend_url'), '/') }}/auth/login">Iniciar sesión</a>
+            <a class="button button-primary" href="{{ rtrim(config('app.frontend_url'), '/') }}/solicitar-acceso">Solicitar acceso <span aria-hidden="true">→</span></a>
         </nav>
     </header>
 
@@ -36,9 +32,10 @@
                 <h1>Tu finca, más clara.<br><span>Tu gestión, más simple.</span></h1>
                 <p class="hero-copy">Organiza tus fincas, lotes y actividades; consulta las lecturas del campo y toma decisiones con información centralizada.</p>
                 <div class="hero-actions">
-                    <a class="button button-primary" href="{{ rtrim(config('app.frontend_url'), '/') }}/auth/login">Entrar a Aggrio <span aria-hidden="true">→</span></a>
-                    <a class="button button-glass" href="#features">Conocer la plataforma</a>
+                    <a class="button button-primary" href="{{ rtrim(config('app.frontend_url'), '/') }}/solicitar-acceso">Solicitar acceso <span aria-hidden="true">→</span></a>
+                    <a class="button button-glass" href="{{ rtrim(config('app.frontend_url'), '/') }}/auth/login">Ya tengo cuenta · Iniciar sesión</a>
                 </div>
+                <p class="access-hint">¿Eres productor? Envía tu solicitud y te contactaremos con las instrucciones de acceso.</p>
                 <div class="hero-note"><span class="status-dot"></span> Información organizada para el trabajo diario en el campo</div>
             </div>
             <div class="hero-mark" aria-hidden="true"><span>AG</span><small>GESTIÓN AGRÍCOLA</small></div>
@@ -92,9 +89,9 @@
             <div>
                 <p class="eyebrow">Aggrio</p>
                 <h2>Empieza con una gestión más organizada.</h2>
-                <p>Ingresa al panel para consultar la información de tu operación.</p>
+                <p>Solicita tu acceso a Aggrio. Nuestro equipo revisará tus datos y te indicará cómo empezar.</p>
             </div>
-            <a class="button button-light" href="{{ rtrim(config('app.frontend_url'), '/') }}/auth/login">Ir al panel <span aria-hidden="true">→</span></a>
+            <a class="button button-light" href="{{ rtrim(config('app.frontend_url'), '/') }}/solicitar-acceso">Solicitar acceso <span aria-hidden="true">→</span></a>
         </section>
     </main>
 

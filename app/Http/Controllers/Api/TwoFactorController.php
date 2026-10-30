@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\TwoFactorChallenge;
+use App\Models\User;
 use App\Services\ApiTokenService;
+use App\Services\TrustedDeviceService;
 use App\Services\TwoFactorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Doble factor TOTP obligatorio para el Superadmin. RF003.
@@ -29,15 +32,20 @@ class TwoFactorController extends Controller
      */
     public function setup(Request $request): JsonResponse
     {
+        return DB::transaction(fn () => $this->performSetup($request), 3);
+    }
+
+    private function performSetup(Request $request): JsonResponse
+    {
         $request->validate(['challenge_token' => 'required|string']);
 
-        $challenge = TwoFactorChallenge::findValid($request->challenge_token);
+        $challenge = TwoFactorChallenge::findValid($request->challenge_token, true);
 
-        if (! $challenge) {
+        if (! $challenge || (($challenge->device_name === 'web-panel') !== $request->routeIs('web.auth.*'))) {
             return $this->invalidChallenge();
         }
 
-        $user = $challenge->user;
+        $user = User::whereKey($challenge->user_id)->lockForUpdate()->firstOrFail();
 
         if ($user->hasConfirmedTwoFactor()) {
             return response()->json([
@@ -73,18 +81,27 @@ class TwoFactorController extends Controller
      */
     public function confirm(Request $request): JsonResponse
     {
+        return DB::transaction(fn () => $this->performConfirm($request), 3);
+    }
+
+    private function performConfirm(Request $request): JsonResponse
+    {
         $request->validate([
             'challenge_token' => 'required|string',
             'code' => 'required|string',
+            'remember_device' => 'nullable|boolean', 'trusted_device_name' => 'nullable|string|max:100',
         ]);
 
-        $challenge = TwoFactorChallenge::findValid($request->challenge_token);
+        $challenge = TwoFactorChallenge::findValid($request->challenge_token, true);
 
-        if (! $challenge) {
+        if (! $challenge || (($challenge->device_name === 'web-panel') !== $request->routeIs('web.auth.*'))) {
             return $this->invalidChallenge();
         }
 
-        $user = $challenge->user;
+        $user = User::whereKey($challenge->user_id)->lockForUpdate()->firstOrFail();
+        if ($user->hasConfirmedTwoFactor()) {
+            return response()->json(['success' => false, 'message' => 'El segundo factor ya está confirmado. Inicia sesión de nuevo.'], 409);
+        }
 
         if ($user->two_factor_secret === null) {
             return response()->json([
@@ -98,6 +115,7 @@ class TwoFactorController extends Controller
         }
 
         $user->forceFill(['two_factor_confirmed_at' => now()])->save();
+        $challenge->setRelation('user', $user);
 
         // Se guardan hasheados; en claro sólo viajan en esta respuesta.
         $recoveryCodes = $this->twoFactor->issueRecoveryCodes($user);
@@ -113,19 +131,26 @@ class TwoFactorController extends Controller
      */
     public function verify(Request $request): JsonResponse
     {
+        return DB::transaction(fn () => $this->performVerify($request), 3);
+    }
+
+    private function performVerify(Request $request): JsonResponse
+    {
         $request->validate([
             'challenge_token' => 'required|string',
             'code' => 'required_without:recovery_code|nullable|string',
             'recovery_code' => 'required_without:code|nullable|string',
+            'remember_device' => 'nullable|boolean', 'trusted_device_name' => 'nullable|string|max:100',
         ]);
 
-        $challenge = TwoFactorChallenge::findValid($request->challenge_token);
+        $challenge = TwoFactorChallenge::findValid($request->challenge_token, true);
 
-        if (! $challenge) {
+        if (! $challenge || (($challenge->device_name === 'web-panel') !== $request->routeIs('web.auth.*'))) {
             return $this->invalidChallenge();
         }
 
-        $user = $challenge->user;
+        $user = User::whereKey($challenge->user_id)->lockForUpdate()->firstOrFail();
+        $challenge->setRelation('user', $user);
 
         if (! $user->hasConfirmedTwoFactor()) {
             return response()->json([
@@ -169,24 +194,7 @@ class TwoFactorController extends Controller
      */
     public function regenerateRecoveryCodes(Request $request): JsonResponse
     {
-        $request->validate(['password' => 'required|current_password']);
-
-        $user = $request->user();
-
-        if (! $user->hasConfirmedTwoFactor()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes la autenticación en dos pasos activa.',
-            ], 409);
-        }
-
-        $recoveryCodes = $this->twoFactor->issueRecoveryCodes($user);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Guarda estos códigos en un lugar seguro. No se volverán a mostrar.',
-            'data' => ['recovery_codes' => $recoveryCodes],
-        ], 200);
+        return app(SecuritySettingsController::class)->recovery($request);
     }
 
     /**
@@ -202,15 +210,21 @@ class TwoFactorController extends Controller
         // El reto es de un solo uso.
         $challenge->delete();
 
-        return response()->json([
+        $response = response()->json([
             'success' => true,
             'message' => 'Login exitoso',
             'data' => [
+                'requires_two_factor' => false,
                 'user' => $user->toAuthPayload(),
                 ...$this->tokens->issue($user, $deviceName),
                 ...$extra,
             ],
         ], 200);
+        if (request()->routeIs('web.auth.*') && request()->boolean('remember_device')) {
+            return app(TrustedDeviceService::class)->remember(request(), $user, $response);
+        }
+
+        return $response;
     }
 
     private function rejectCode(TwoFactorChallenge $challenge): JsonResponse

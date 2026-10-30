@@ -42,7 +42,7 @@ import { Finca, UserSummary } from '../models/finca.model';
                   }
                 </select>
               } @else {
-                <input id="user_id" type="number" min="1" formControlName="user_id" placeholder="ID del productor" />
+                <p>No hay productores disponibles. Aprueba primero una solicitud.</p>
               }
             </div>
 
@@ -71,11 +71,13 @@ import { Finca, UserSummary } from '../models/finca.model';
 
               <div class="field">
                 <label for="tipo_suelo">Tipo de suelo</label>
-                <input id="tipo_suelo" type="text" formControlName="tipo_suelo" placeholder="Tipo de suelo" />
+                <input id="tipo_suelo" type="text" formControlName="tipo_suelo" list="tipos-suelo" placeholder="Selecciona o escribe el suelo" />
+                <datalist id="tipos-suelo"><option value="franco"></option><option value="arcilloso"></option><option value="arenoso"></option><option value="limoso"></option><option value="franco_arcilloso"></option><option value="franco_arenoso"></option></datalist>
               </div>
             </div>
 
             <div class="actions">
+              <a routerLink="/produccion">Completar tenencia, agua, infraestructura y cultivos</a>
               <button type="submit" [disabled]="isSaving() || form.invalid">
                 {{ isSaving() ? 'Guardando...' : (isEdit() ? 'Guardar cambios' : 'Crear finca') }}
               </button>
@@ -94,7 +96,7 @@ import { Finca, UserSummary } from '../models/finca.model';
             </div>
             <div class="info-block">
               <span>Propietario</span>
-              <strong>{{ owners().length ? 'Listado disponible' : 'Ingrese ID manualmente' }}</strong>
+              <strong>{{ owners().length ? 'Listado disponible' : 'Sin productores disponibles' }}</strong>
             </div>
           </aside>
         </div>
@@ -106,8 +108,8 @@ import { Finca, UserSummary } from '../models/finca.model';
       :host {
         display: block;
         min-height: 100vh;
-        background: linear-gradient(135deg, #eef4ff 0%, #f8fafc 35%, #edf6ff 100%);
-        color: #0f172a;
+        background: linear-gradient(135deg, #fff5f5 0%, var(--aggrio-surface-muted) 35%, #fff8f8 100%);
+        color: var(--aggrio-ink);
       }
 
       .page-shell {
@@ -130,7 +132,7 @@ import { Finca, UserSummary } from '../models/finca.model';
 
       .eyebrow {
         margin: 0;
-        color: #4f46e5;
+        color: #c51217;
         text-transform: uppercase;
         font-size: 0.72rem;
         letter-spacing: 0.12rem;
@@ -139,7 +141,7 @@ import { Finca, UserSummary } from '../models/finca.model';
 
       h1 {
         margin: 0.15rem 0 0;
-        font-size: clamp(2rem, 2.6vw, 2.8rem);
+        font-size: clamp(1.8rem, 2.6vw, 2.5rem);
         letter-spacing: -0.05em;
       }
 
@@ -151,8 +153,8 @@ import { Finca, UserSummary } from '../models/finca.model';
       }
 
       .card {
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid #dbe4f0;
+        background: var(--aggrio-surface);
+        border: 1px solid var(--aggrio-border);
         border-radius: 1rem;
         box-shadow: 0 18px 45px rgba(15, 23, 42, 0.07);
       }
@@ -163,7 +165,7 @@ import { Finca, UserSummary } from '../models/finca.model';
 
       .info-panel {
         padding: 1.4rem;
-        background: linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%);
+        background: linear-gradient(180deg, #f8fbff 0%, var(--aggrio-primary-soft) 100%);
       }
 
       .info-panel h3 {
@@ -184,7 +186,7 @@ import { Finca, UserSummary } from '../models/finca.model';
         font-size: 0.76rem;
         text-transform: uppercase;
         letter-spacing: 0.08rem;
-        color: #475569;
+        color: var(--aggrio-muted);
         margin-bottom: 0.35rem;
       }
 
@@ -208,19 +210,19 @@ import { Finca, UserSummary } from '../models/finca.model';
       select {
         width: 100%;
         padding: 0.85rem 0.9rem;
-        border: 1px solid #cbd5e1;
+        border: 1px solid var(--aggrio-border);
         border-radius: 0.75rem;
         font: inherit;
         box-sizing: border-box;
-        background: #f8fafc;
+        background: var(--aggrio-surface-muted);
         transition: border-color 0.2s ease, box-shadow 0.2s ease;
       }
 
       input:focus,
       select:focus {
         outline: none;
-        border-color: #60a5fa;
-        box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.18);
+        border-color: #f16a6d;
+        box-shadow: 0 0 0 4px rgba(241, 106, 109, 0.18);
       }
 
       .grid {
@@ -250,19 +252,19 @@ import { Finca, UserSummary } from '../models/finca.model';
       .button.secondary {
         padding: 0.8rem 1.1rem;
         border: 1px solid #c7d2fe;
-        background: rgba(255, 255, 255, 0.9);
-        color: #1f2937;
+        background: var(--aggrio-surface);
+        color: var(--aggrio-ink);
         text-decoration: none;
         box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
       }
 
       button {
         padding: 0.85rem 1.4rem;
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        background: linear-gradient(135deg, var(--aggrio-primary) 0%, var(--aggrio-primary-dark) 100%);
         color: white;
         border: none;
         cursor: pointer;
-        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.22);
+        box-shadow: 0 10px 20px rgba(236, 28, 33, 0.22);
       }
 
       button:disabled {
@@ -278,9 +280,9 @@ import { Finca, UserSummary } from '../models/finca.model';
       }
 
       .alert.error {
-        background: #fef2f2;
-        color: #991b1b;
-        border-color: #fecaca;
+        background: var(--aggrio-danger-background);
+        color: var(--aggrio-danger);
+        border-color: var(--aggrio-danger-border);
       }
 
       @media (max-width: 980px) {
@@ -345,23 +347,9 @@ export class EstateForm implements OnInit {
   }
 
   loadOwners(): void {
-    this.fincaAdminService.getAdminFincas().subscribe({
-      next: (response) => {
-        const fincas = response.data ?? [];
-        const owners = new Map<number, UserSummary>();
-
-        for (const finca of fincas) {
-          if (finca.user) {
-            owners.set(finca.user.id, finca.user);
-          }
-        }
-
-        this.owners.set(Array.from(owners.values()));
-      },
-      error: (error) => {
-        this.owners.set([]);
-        this.error.set(this.getErrorMessage(error));
-      },
+    this.fincaAdminService.getProductores().subscribe({
+      next: response => this.owners.set(response.data ?? []),
+      error: error => { this.owners.set([]); this.error.set(this.getErrorMessage(error)); },
     });
   }
 

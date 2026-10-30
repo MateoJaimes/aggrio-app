@@ -1,12 +1,17 @@
 import { Routes } from '@angular/router';
 
-import { guestGuard, twoFactorGuard } from '../../core/auth/auth.guard';
+import { authGuard, guestGuard, twoFactorGuard } from '../../core/auth/auth.guard';
 import { ForgotPassword } from './pages/forgot-password';
 import { Login } from './pages/login';
 import { ResetPassword } from './pages/reset-password';
 import { TwoFactor } from './pages/two-factor';
 
 export const authRoutes: Routes = [
+  {
+    path: 'change-password',
+    loadComponent: () => import('./pages/change-password').then((m) => m.ChangePassword),
+    canActivate: [authGuard],
+  },
   {
     path: 'login',
     component: Login,

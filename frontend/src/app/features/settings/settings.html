@@ -1,0 +1,248 @@
+<div class="shell">
+  <app-admin-sidebar />
+  <main>
+    <header>
+      <p class="eyebrow">Superadmin</p>
+      <h1>Configuración</h1>
+      <p>Seguridad y dispositivos de {{ auth.currentUser()?.name }}.</p>
+    </header>
+    @if (error()) {
+      <p class="alert error" role="alert">{{ error() }}</p>
+    }
+    @if (notice()) {
+      <p class="alert success" role="status">{{ notice() }}</p>
+    }
+    @if (busy()) {
+      <p role="status">Procesando…</p>
+    }
+    @if (state(); as s) {
+      <section class="card">
+        <div class="heading">
+          <div>
+            <h2>Aplicaciones autenticadoras</h2>
+            <p>
+              Cada aplicación tiene su propia clave. Puedes usar cualquiera de las confirmadas para
+              entrar.
+            </p>
+          </div>
+          <div class="actions">
+            <button (click)="choose('add')" [disabled]="busy()">Añadir aplicación o teléfono</button
+            ><button class="secondary" (click)="choose('replace')" [disabled]="busy()">
+              Cambiar aplicación principal
+            </button>
+          </div>
+        </div>
+        @for (device of s.authenticators; track device.id) {
+          <article class="row">
+            <div>
+              <strong>{{ device.name }}</strong
+              ><small
+                >{{ device.id === 'principal' ? 'Principal' : 'Adicional' }} · Confirmada
+                {{ device.confirmed_at | date: 'mediumDate' : '-0500' }}</small
+              >
+            </div>
+            <button
+              class="secondary"
+              (click)="choose('remove', device)"
+              [disabled]="busy() || s.authenticators.length < 2"
+            >
+              Retirar
+            </button>
+          </article>
+        }
+        <p class="hint">
+          Se conserva al menos una aplicación. Al cambiarla, la anterior sigue activa hasta
+          confirmar la nueva. Puedes utilizar una app compatible con códigos TOTP, como Google
+          Authenticator o Microsoft Authenticator.
+        </p>
+      </section>
+      @if (action(); as actionType) {
+        <section class="card verification" aria-labelledby="verification-title">
+          <h2 id="verification-title">
+            {{
+              actionType === 'remove'
+                ? 'Retirar ' + target?.name
+                : actionType === 'recovery'
+                  ? 'Renovar códigos de recuperación'
+                  : actionType === 'replace'
+                    ? 'Cambiar de aplicación'
+                    : 'Añadir un autenticador'
+            }}
+          </h2>
+          <p>Confirma tu contraseña y un código actual para realizar este cambio.</p>
+          <form #securityForm="ngForm" (ngSubmit)="submit()">
+            @if (actionType === 'add' || actionType === 'replace') {
+              <label
+                >Nombre de la aplicación o teléfono<input
+                  name="name"
+                  [(ngModel)]="name"
+                  required
+                  maxlength="100"
+                  placeholder="Ej. Authenticator en mi teléfono"
+              /></label>
+            }
+            <div class="grid">
+              <label
+                >Contraseña actual<input
+                  type="password"
+                  name="password"
+                  autocomplete="current-password"
+                  [(ngModel)]="password"
+                  required
+                  maxlength="255" /></label
+              ><label
+                >{{ useRecovery ? 'Código de recuperación' : 'Código de tu aplicación actual'
+                }}<input
+                  name="current-code"
+                  [(ngModel)]="currentCode"
+                  autocomplete="one-time-code"
+                  [attr.inputmode]="useRecovery ? 'text' : 'numeric'"
+                  [attr.maxlength]="useRecovery ? 30 : 6"
+                  required
+              /></label>
+            </div>
+            <label class="check"
+              ><input
+                type="checkbox"
+                name="use-recovery"
+                [(ngModel)]="useRecovery"
+                (ngModelChange)="currentCode = ''"
+              />Usar un código de recuperación</label
+            >
+            @if (actionType === 'recovery') {
+              <p>
+                Los códigos anteriores dejarán de funcionar. Los nuevos se mostrarán una sola vez.
+              </p>
+            }
+            <div class="actions">
+              <button [disabled]="busy() || securityForm.invalid">Confirmar identidad</button
+              ><button type="button" class="secondary" (click)="cancel()" [disabled]="busy()">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </section>
+      }
+      @if (pending(); as pending) {
+        <section class="card">
+          <h2>Confirma {{ pending.name }}</h2>
+          <p>
+            Escanea este QR desde la nueva aplicación y escribe el código que muestra. Este registro
+            vence en diez minutos.
+          </p>
+          <div class="setup">
+            <img
+              [src]="pending.qr_code"
+              width="220"
+              height="220"
+              alt="QR para la nueva aplicación autenticadora"
+            />
+            <div>
+              <p>Clave para introducir manualmente:</p>
+              <code>{{ pending.secret }}</code>
+              <form #confirmForm="ngForm" (ngSubmit)="confirm()">
+                <label
+                  >Código de la nueva aplicación<input
+                    name="new-code"
+                    [(ngModel)]="newCode"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    maxlength="6"
+                    pattern="[0-9]{6}"
+                    required
+                /></label>
+                <div class="actions">
+                  <button [disabled]="busy() || confirmForm.invalid">Activar aplicación</button
+                  ><button type="button" class="secondary" (click)="cancel()" [disabled]="busy()">
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+      }
+      <section class="card">
+        <div class="heading">
+          <div>
+            <h2>Navegadores recordados</h2>
+            <p>
+              Después de verificar el doble factor puedes recordar tu navegador por
+              {{ s.remember_days }} días. La contraseña sigue siendo necesaria.
+            </p>
+          </div>
+          <button
+            class="secondary"
+            (click)="forget('all')"
+            [disabled]="busy() || !s.trusted_devices.length"
+          >
+            Olvidar todos
+          </button>
+        </div>
+        @for (device of s.trusted_devices; track device.id) {
+          <article class="row">
+            <div>
+              <strong>{{ device.name }} {{ device.is_current ? '· Este navegador' : '' }}</strong
+              ><small
+                >Último ingreso: {{ device.last_used_at | date: 'medium' : '-0500' }} · Vence:
+                {{ device.expires_at | date: 'mediumDate' : '-0500' }}</small
+              >
+            </div>
+            <button class="secondary" (click)="forget(device.id)" [disabled]="busy()">
+              Olvidar
+            </button>
+          </article>
+        } @empty {
+          <p>
+            No hay navegadores recordados. Activa la opción durante la verificación de tu próximo
+            ingreso.
+          </p>
+        }
+        <p class="hint">
+          Al olvidar un navegador, su próximo inicio de sesión volverá a pedir el código. Cambiar la
+          contraseña o la configuración de autenticadores también revoca los navegadores recordados.
+        </p>
+      </section>
+      <section class="card">
+        <div class="heading">
+          <div>
+            <h2>Códigos de recuperación</h2>
+            <p>
+              Disponibles: {{ s.recovery_codes_remaining }}. Cada uno permite un único acceso si
+              pierdes tu teléfono.
+            </p>
+          </div>
+          <button class="secondary" (click)="choose('recovery')" [disabled]="busy()">
+            Generar nuevos códigos
+          </button>
+        </div>
+        @if (codes().length) {
+          <p>Guárdalos antes de salir; no volverán a mostrarse.</p>
+          <ul class="codes">
+            @for (code of codes(); track code) {
+              <li>
+                <code>{{ code }}</code>
+              </li>
+            }
+          </ul>
+          <button (click)="codes.set([])">Ya los guardé</button>
+        }
+      </section>
+      <section class="card">
+        <h2>Actividad de seguridad</h2>
+        @for (event of s.events; track event.id) {
+          <article class="row">
+            <div>
+              <strong>{{ eventLabel(event.action) }}</strong
+              ><small
+                >{{ event.device_name }} · {{ event.created_at | date: 'medium' : '-0500' }}</small
+              >
+            </div>
+          </article>
+        } @empty {
+          <p>Aquí aparecerán los cambios de autenticadores y navegadores recordados.</p>
+        }
+      </section>
+    }
+  </main>
+</div>

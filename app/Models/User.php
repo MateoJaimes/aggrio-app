@@ -11,24 +11,35 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens; //Agregado para la API :D
+use Laravel\Sanctum\HasApiTokens; // Agregado para la API :D
 
-#[Fillable(['name', 'email', 'password', 'role'])]
+#[Fillable(['name', 'email', 'password', 'role', 'phone'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable
 {
+    protected $attributes = ['account_status' => 'active'];
+
+    public function setEmailAttribute(string $email): void
+    {
+        $this->attributes['email'] = mb_strtolower(trim($email));
+    }
+
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
+            'suspended_at' => 'datetime',
+            'temporary_password_expires_at' => 'datetime',
             'role' => UserRole::class,
             'two_factor_secret' => 'encrypted',
             'two_factor_recovery_codes' => 'encrypted:array',
             'two_factor_confirmed_at' => 'datetime',
+            'two_factor_version' => 'integer',
         ];
     }
 
@@ -49,6 +60,11 @@ class User extends Authenticatable
     public function isSuperAdmin(): bool
     {
         return $this->role === UserRole::Superadmin;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->account_status === 'active';
     }
 
     /**
@@ -78,6 +94,9 @@ class User extends Authenticatable
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            'phone' => $this->phone,
+            'must_change_password' => (bool) $this->must_change_password,
+            'account_status' => $this->account_status,
             'role' => $this->role?->value,
             'is_superadmin' => $this->isSuperAdmin(),
             'two_factor_enabled' => $this->hasConfirmedTwoFactor(),

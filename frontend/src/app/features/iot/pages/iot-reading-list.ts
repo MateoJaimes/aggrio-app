@@ -104,11 +104,11 @@ export class IotReadingList implements OnInit {
   }
 
   deleteLectura(lectura: LecturaIot): void {
-    const confirmed = window.confirm(
-      `¿Deseas eliminar la lectura de ${this.tipoLabel(lectura.tipo_medicion)} del ${lectura.fecha_medicion}? Esta acción no se puede deshacer.`,
+    const motivo = window.prompt(
+      `¿Deseas archivar la lectura de ${this.tipoLabel(lectura.tipo_medicion)} del ${lectura.fecha_medicion}? Se conserva el historial. Escribe el motivo para continuar.`,
     );
 
-    if (!confirmed) {
+    if (!motivo?.trim()) {
       return;
     }
 
@@ -116,7 +116,7 @@ export class IotReadingList implements OnInit {
     this.error.set('');
     this.notice.set('');
 
-    this.lecturaIotAdminService.deleteLectura(lectura.id).subscribe({
+    this.lecturaIotAdminService.deleteLectura(lectura.id, motivo).subscribe({
       next: (response) => {
         this.notice.set(response.message ?? 'Lectura IoT eliminada exitosamente.');
         this.deletingId.set(null);

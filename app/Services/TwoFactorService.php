@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AuthenticatorDevice;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -41,9 +42,9 @@ class TwoFactorService
     /**
      * QR listo para pintar en un <img src="..."> del frontend (SVG en data URI).
      */
-    public function qrCodeDataUri(User $user, string $secret): string
+    public function qrCodeDataUri(User $user, string $secret, ?string $label = null): string
     {
-        return $this->google2fa->getQRCodeInline($this->issuer(), $user->email, $secret);
+        return $this->google2fa->getQRCodeInline($this->issuer(), $user->email.($label ? ' · '.$label : ''), $secret);
     }
 
     /**
@@ -58,9 +59,21 @@ class TwoFactorService
             return false;
         }
 
-        $window = (int) config('sanctum.two_factor_window', 1);
+        if ($this->verifySecret($user->two_factor_secret, $code)) {
+            return true;
+        }
+        foreach (AuthenticatorDevice::where('user_id', $user->id)->whereNotNull('confirmed_at')->get() as $device) {
+            if ($this->verifySecret($device->secret, $code)) {
+                return true;
+            }
+        }
 
-        return (bool) $this->google2fa->verifyKey($user->two_factor_secret, $code, $window);
+        return false;
+    }
+
+    public function verifySecret(string $secret, string $code): bool
+    {
+        return preg_match('/^[0-9]{6}$/D', $code) === 1 && (bool) $this->google2fa->verifyKey($secret, $code, (int) config('sanctum.two_factor_window', 1));
     }
 
     /**

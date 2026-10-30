@@ -92,9 +92,9 @@ export class LotList implements OnInit {
   }
 
   deleteLote(lote: Lote): void {
-    const confirmed = window.confirm(`¿Deseas eliminar el lote “${lote.nombre}”? Esta acción no se puede deshacer.`);
+    const motivo = window.prompt(`¿Deseas archivar el lote “${lote.nombre}”? Se conserva el historial. Escribe el motivo para continuar.`);
 
-    if (!confirmed) {
+    if (!motivo?.trim()) {
       return;
     }
 
@@ -102,7 +102,7 @@ export class LotList implements OnInit {
     this.error.set('');
     this.notice.set('');
 
-    this.loteAdminService.deleteLote(lote.id).subscribe({
+    this.loteAdminService.deleteLote(lote.id, motivo).subscribe({
       next: (response) => {
         this.notice.set(response.message ?? 'Lote eliminado exitosamente.');
         this.deletingId.set(null);

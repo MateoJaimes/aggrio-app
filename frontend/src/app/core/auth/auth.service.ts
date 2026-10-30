@@ -1,6 +1,17 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, catchError, map, of, tap, throwError } from 'rxjs';
+import {
+  Observable,
+  catchError,
+  map,
+  of,
+  tap,
+  timeout,
+  defer,
+  from,
+  firstValueFrom,
+  switchMap,
+} from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api-response.model';
@@ -22,19 +33,76 @@ const USER_KEY = 'currentUser';
 const CHALLENGE_KEY = 'two_factor_challenge';
 const CHALLENGE_ENROLLED_KEY = 'two_factor_enrolled';
 
-/** Nombre con el que esta sesión aparece en el listado de tokens del backend. */
-const DEVICE_NAME = 'panel-angular';
-
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = environment.apiUrl;
 
-  private readonly userSignal = signal<User | null>(readUser());
+  private readonly userSignal = signal<User | null>(null);
+  private accessToken: string | null = null;
+  private expiresAt: string | null = null;
+  private csrfToken: string | null = null;
+  constructor() {
+    // Remove credentials left by older web releases; web refresh credentials live only in HttpOnly cookies.
+    for (const key of [ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, EXPIRES_AT_KEY, USER_KEY]) {
+      safeRemove(key);
+      safeRemove(key, sessionStorage);
+    }
+  }
+  private webHeaders(csrf = false): Record<string, string> {
+    return {
+      'X-Aggrio-Web': '1',
+      ...(csrf && this.csrfToken ? { 'X-CSRF-Token': this.csrfToken } : {}),
+    };
+  }
+  getCsrfToken(): string | null {
+    return this.csrfToken;
+  }
+  canRefresh(): boolean {
+    return this.csrfToken !== null;
+  }
+  restoreSession(): Observable<unknown> {
+    if (safeRead('aggrio:logout-pending') === 'true') {
+      return this.http
+        .get<ApiResponse<{ csrf_token: string }>>(`${this.baseUrl}/web/auth/csrf`, {
+          withCredentials: true,
+          headers: this.webHeaders(),
+        })
+        .pipe(
+          timeout(10000),
+          tap((r) => (this.csrfToken = r.data?.csrf_token ?? null)),
+          map(() => null),
+          // Finish a logout that could not reach the server while offline.
+          switchMap(() => this.revokeThen(`${this.baseUrl}/web/auth/logout`)),
+          catchError((e) => {
+            if ([401, 403].includes(e.status)) safeRemove('aggrio:logout-pending');
+            this.clearSession();
+            return of(null);
+          }),
+        );
+    }
+    return this.refreshSession().pipe(
+      catchError(() => {
+        this.clearSession();
+        return of(null);
+      }),
+    );
+  }
+  private async sessionLock<T>(work: () => Promise<T>): Promise<T> {
+    return navigator.locks ? navigator.locks.request('aggrio-web-session', work) : work();
+  }
 
   readonly currentUser = this.userSignal.asReadonly();
   readonly isAuthenticated = computed(() => this.userSignal() !== null && this.getToken() !== null);
   readonly isSuperAdmin = computed(() => this.userSignal()?.is_superadmin === true);
+
+  updateContact(name: string, phone: string): void {
+    const user = this.userSignal();
+    if (user) {
+      const updated = { ...user, name, phone };
+      this.userSignal.set(updated);
+    }
+  }
 
   // -------------------------------------------------------------- login (RF003)
 
@@ -44,11 +112,11 @@ export class AuthService {
    */
   login(email: string, password: string): Observable<LoginPayload> {
     return this.http
-      .post<ApiResponse<LoginPayload>>(`${this.baseUrl}/login`, {
-        email,
-        password,
-        device_name: DEVICE_NAME,
-      })
+      .post<ApiResponse<LoginPayload>>(
+        `${this.baseUrl}/web/auth/login`,
+        { email, password },
+        { withCredentials: true, headers: this.webHeaders() },
+      )
       .pipe(
         map((response) => response.data as LoginPayload),
         tap((payload) => {
@@ -64,25 +132,51 @@ export class AuthService {
   /** Alta del TOTP: devuelve el QR para escanear. */
   startTwoFactorSetup(): Observable<TwoFactorSetupPayload> {
     return this.http
-      .post<ApiResponse<TwoFactorSetupPayload>>(`${this.baseUrl}/login/2fa/setup`, {
-        challenge_token: this.getChallengeToken(),
-      })
+      .post<ApiResponse<TwoFactorSetupPayload>>(
+        `${this.baseUrl}/web/auth/2fa/setup`,
+        { challenge_token: this.getChallengeToken() },
+        { withCredentials: true, headers: this.webHeaders() },
+      )
       .pipe(map((response) => response.data as TwoFactorSetupPayload));
   }
 
   /** Confirma el alta del TOTP y completa el login. */
-  confirmTwoFactorSetup(code: string): Observable<SessionPayload> {
-    return this.completeChallenge(`${this.baseUrl}/login/2fa/confirm`, { code });
+  confirmTwoFactorSetup(
+    code: string,
+    rememberDevice = false,
+    deviceName = '',
+  ): Observable<SessionPayload> {
+    return this.completeChallenge(`${this.baseUrl}/web/auth/2fa/confirm`, {
+      code,
+      remember_device: rememberDevice,
+      trusted_device_name: deviceName || null,
+    });
   }
 
   /** Paso 2 del login con el código de la app autenticadora. */
-  verifyTwoFactorCode(code: string): Observable<SessionPayload> {
-    return this.completeChallenge(`${this.baseUrl}/login/2fa/verify`, { code });
+  verifyTwoFactorCode(
+    code: string,
+    rememberDevice = false,
+    deviceName = '',
+  ): Observable<SessionPayload> {
+    return this.completeChallenge(`${this.baseUrl}/web/auth/2fa/verify`, {
+      code,
+      remember_device: rememberDevice,
+      trusted_device_name: deviceName || null,
+    });
   }
 
   /** Paso 2 del login usando uno de los códigos de recuperación. */
-  verifyRecoveryCode(recoveryCode: string): Observable<SessionPayload> {
-    return this.completeChallenge(`${this.baseUrl}/login/2fa/verify`, { recovery_code: recoveryCode });
+  verifyRecoveryCode(
+    recoveryCode: string,
+    rememberDevice = false,
+    deviceName = '',
+  ): Observable<SessionPayload> {
+    return this.completeChallenge(`${this.baseUrl}/web/auth/2fa/verify`, {
+      recovery_code: recoveryCode,
+      remember_device: rememberDevice,
+      trusted_device_name: deviceName || null,
+    });
   }
 
   twoFactorStatus(): Observable<TwoFactorStatusPayload> {
@@ -102,42 +196,39 @@ export class AuthService {
   // ------------------------------------------------------------ sesión (RF004)
 
   getToken(): string | null {
-    return safeRead(ACCESS_TOKEN_KEY);
+    return this.accessToken;
   }
-
-  getRefreshToken(): string | null {
-    return safeRead(REFRESH_TOKEN_KEY);
-  }
-
-  /** El access token venció o está a punto de vencer (margen de 30 s). */
   isAccessTokenExpiring(): boolean {
-    const expiresAt = safeRead(EXPIRES_AT_KEY);
-
-    if (!expiresAt) {
-      return false;
-    }
-
-    return Date.parse(expiresAt) - Date.now() <= 30_000;
+    return this.expiresAt !== null && Date.parse(this.expiresAt) - Date.now() <= 30000;
   }
-
-  /** Canjea el refresh token por un par nuevo. */
   refreshSession(): Observable<TokenPair> {
-    const refreshToken = this.getRefreshToken();
-
-    if (!refreshToken) {
-      return throwError(() => new Error('No hay refresh token disponible.'));
-    }
-
-    return this.http
-      .post<ApiResponse<SessionPayload>>(
-        `${this.baseUrl}/auth/refresh`,
-        {},
-        { headers: { Authorization: `Bearer ${refreshToken}` } },
-      )
-      .pipe(
-        map((response) => response.data as SessionPayload),
-        tap((payload) => this.storeSession(payload)),
-      );
+    return defer(() =>
+      from(
+        this.sessionLock(async () => {
+          const csrf = await firstValueFrom(
+            this.http
+              .get<ApiResponse<{ csrf_token: string }>>(`${this.baseUrl}/web/auth/csrf`, {
+                withCredentials: true,
+                headers: this.webHeaders(),
+              })
+              .pipe(timeout(10000)),
+          );
+          this.csrfToken = csrf.data?.csrf_token ?? null;
+          const response = await firstValueFrom(
+            this.http
+              .post<ApiResponse<SessionPayload>>(
+                `${this.baseUrl}/web/auth/refresh`,
+                {},
+                { withCredentials: true, headers: this.webHeaders(true) },
+              )
+              .pipe(timeout(10000)),
+          );
+          const payload = response.data as SessionPayload;
+          this.storeSession(payload);
+          return payload;
+        }),
+      ),
+    );
   }
 
   /**
@@ -146,7 +237,7 @@ export class AuthService {
    * dispositivos siguen vivas.
    */
   logout(): Observable<void> {
-    return this.revokeThen(`${this.baseUrl}/logout`);
+    return this.revokeThen(`${this.baseUrl}/web/auth/logout`);
   }
 
   /**
@@ -154,7 +245,7 @@ export class AuthService {
    * usuario. Útil si sospecha que alguien más tiene acceso a su cuenta.
    */
   logoutAll(): Observable<void> {
-    return this.revokeThen(`${this.baseUrl}/logout-all`);
+    return this.revokeThen(`${this.baseUrl}/web/auth/logout-all`);
   }
 
   /**
@@ -162,6 +253,14 @@ export class AuthService {
    * están logout() y logoutAll().
    */
   clearSession(): void {
+    try {
+      Object.keys(sessionStorage)
+        .filter((key) => key.startsWith('aggrio:draft:'))
+        .forEach((key) => sessionStorage.removeItem(key));
+    } catch {
+      /* Storage can be unavailable in private browsing. */
+    }
+    this.accessToken = this.expiresAt = this.csrfToken = null;
     safeRemove(ACCESS_TOKEN_KEY);
     safeRemove(REFRESH_TOKEN_KEY);
     safeRemove(EXPIRES_AT_KEY);
@@ -178,6 +277,28 @@ export class AuthService {
     return this.http
       .post<ApiResponse<null>>(`${this.baseUrl}/password/forgot`, { email })
       .pipe(map((response) => response.message ?? 'Revisa tu correo.'));
+  }
+
+  changePassword(
+    currentPassword: string | null,
+    password: string,
+    confirmation: string,
+  ): Observable<SessionPayload> {
+    return this.http
+      .put<ApiResponse<SessionPayload>>(
+        `${this.baseUrl}/web/auth/password`,
+        {
+          ...(currentPassword ? { current_password: currentPassword } : {}),
+          password,
+          password_confirmation: confirmation,
+        },
+        { withCredentials: true, headers: this.webHeaders(true) },
+      )
+      .pipe(
+        timeout(20000),
+        map((response) => response.data as SessionPayload),
+        tap((payload) => this.storeSession(payload)),
+      );
   }
 
   resetPassword(input: {
@@ -205,22 +326,34 @@ export class AuthService {
    * no hay red, la sesión debe terminar igualmente en este navegador.
    */
   private revokeThen(url: string): Observable<void> {
-    if (!this.getToken()) {
-      this.clearSession();
-
-      return of(void 0);
-    }
-
-    return this.http.post<ApiResponse<null>>(url, {}).pipe(
-      catchError(() => of(null)),
-      tap(() => this.clearSession()),
-      map(() => void 0),
-    );
+    safeWrite('aggrio:logout-pending', 'true');
+    return this.http
+      .post<ApiResponse<null>>(url, {}, { withCredentials: true, headers: this.webHeaders(true) })
+      .pipe(
+        timeout(10000),
+        tap(() => safeRemove('aggrio:logout-pending')),
+        catchError((e) => {
+          if ([401, 403].includes(e.status)) safeRemove('aggrio:logout-pending');
+          return of(null);
+        }),
+        tap(() => this.clearSession()),
+        map(() => void 0),
+      );
   }
 
-  private completeChallenge(url: string, body: Record<string, string>): Observable<SessionPayload> {
+  private completeChallenge(
+    url: string,
+    body: Record<string, string | boolean | null>,
+  ): Observable<SessionPayload> {
     return this.http
-      .post<ApiResponse<SessionPayload>>(url, { ...body, challenge_token: this.getChallengeToken() })
+      .post<ApiResponse<SessionPayload>>(
+        url,
+        {
+          ...body,
+          challenge_token: this.getChallengeToken(),
+        },
+        { withCredentials: true, headers: this.webHeaders() },
+      )
       .pipe(
         map((response) => response.data as SessionPayload),
         tap((payload) => {
@@ -231,14 +364,11 @@ export class AuthService {
   }
 
   private storeSession(payload: SessionPayload | (TokenPair & { user?: User })): void {
-    safeWrite(ACCESS_TOKEN_KEY, payload.access_token);
-    safeWrite(REFRESH_TOKEN_KEY, payload.refresh_token);
-    safeWrite(EXPIRES_AT_KEY, payload.expires_at);
-
-    if (payload.user) {
-      safeWrite(USER_KEY, JSON.stringify(payload.user));
-      this.userSignal.set(payload.user);
-    }
+    this.accessToken = payload.access_token;
+    this.expiresAt = payload.expires_at;
+    this.csrfToken = payload.csrf_token ?? this.csrfToken;
+    safeRemove('aggrio:logout-pending');
+    if (payload.user) this.userSignal.set(payload.user);
   }
 
   private storeChallenge(token: string, enrolled: boolean): void {
@@ -279,19 +409,5 @@ function safeRemove(key: string, store: Storage = localStorage): void {
     store.removeItem(key);
   } catch {
     /* almacenamiento no disponible */
-  }
-}
-
-function readUser(): User | null {
-  const raw = safeRead(USER_KEY);
-
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(raw) as User;
-  } catch {
-    return null;
   }
 }

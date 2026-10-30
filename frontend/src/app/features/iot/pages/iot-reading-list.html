@@ -70,7 +70,7 @@
                   <td>{{ lectura.fecha_medicion | date:'dd/MM/yyyy, HH:mm:ss' }}</td>
                   <td class="actions">
                     <a [routerLink]="['/iot', lectura.id, 'edit']">Editar</a>
-                    <button class="delete" type="button" (click)="deleteLectura(lectura)" [disabled]="deletingId() === lectura.id">{{ deletingId() === lectura.id ? 'Eliminando…' : 'Eliminar' }}</button>
+                    <button class="delete" type="button" (click)="deleteLectura(lectura)" [disabled]="deletingId() === lectura.id">{{ deletingId() === lectura.id ? 'Archivando…' : 'Archivar' }}</button>
                   </td>
                 </tr>
               } @empty {

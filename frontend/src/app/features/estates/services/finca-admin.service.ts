@@ -4,12 +4,16 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../../../core/models/api-response.model';
-import { Finca } from '../models/finca.model';
+import { Finca, UserSummary } from '../models/finca.model';
 
 @Injectable({ providedIn: 'root' })
 export class FincaAdminService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/admin/fincas`;
+
+  getProductores(): Observable<ApiResponse<UserSummary[]>> {
+    return this.http.get<ApiResponse<UserSummary[]>>(`${environment.apiUrl}/admin/productores`);
+  }
 
   getAdminFincas(): Observable<ApiResponse<Finca[]>> {
     return this.http.get<ApiResponse<Finca[]>>(this.baseUrl);

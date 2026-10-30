@@ -29,9 +29,11 @@ export class Login {
   readonly isLoading = signal(false);
   readonly error = signal('');
   readonly notice = signal(
-    this.route.snapshot.queryParamMap.get('expired')
-      ? 'Tu sesión expiró. Vuelve a iniciar sesión.'
-      : '',
+    this.route.snapshot.queryParamMap.get('suspended')
+      ? 'Tu cuenta está suspendida. Contacta al equipo de Aggrio para revisar tu acceso.'
+      : this.route.snapshot.queryParamMap.get('expired')
+        ? 'Tu sesión expiró. Vuelve a iniciar sesión.'
+        : '',
   );
 
   constructor() {
@@ -71,6 +73,10 @@ export class Login {
   }
 
   private redirectTarget(): string {
-    return this.route.snapshot.queryParamMap.get('redirect') ?? '/estates';
+    const target = this.route.snapshot.queryParamMap.get('redirect');
+    if (!this.auth.isSuperAdmin()) return '/campo';
+    return target?.startsWith('/') && !target.startsWith('//') && !target.startsWith('/auth')
+      ? target
+      : '/dashboard';
   }
 }

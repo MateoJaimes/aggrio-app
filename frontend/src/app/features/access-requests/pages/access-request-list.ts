@@ -2,7 +2,11 @@ import { AdminSidebar } from '../../admin-sidebar';
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 
-import { AccessRequest, AccessRequestAction, AccessRequestStatus } from '../models/access-request.model';
+import {
+  AccessRequest,
+  AccessRequestAction,
+  AccessRequestStatus,
+} from '../models/access-request.model';
 import { AccessRequestAdminService } from '../services/access-request-admin.service';
 
 @Component({
@@ -23,6 +27,53 @@ export class AccessRequestList implements OnInit {
   readonly selectedRequest = signal<AccessRequest | null>(null);
   readonly search = signal('');
   readonly filter = signal<AccessRequestStatus | 'all'>('all');
+  readonly mailPreview = signal('');
+  readonly deliveryReady = signal(true);
+  readonly consoleResetEnabled = signal(false);
+
+  invitationLabel(status?: string | null): string {
+    return (
+      (
+        {
+          queued: 'Correo en cola',
+          sent: 'Entregado al servidor de correo',
+          preview: 'Correo de prueba disponible',
+          failed: 'Error de envío',
+          expired: 'Contraseña temporal caducada',
+          completed: 'Primer acceso completado',
+          cancelled: 'Invitación cancelada por suspensión de la cuenta',
+        } as Record<string, string>
+      )[status ?? ''] ?? 'Sin invitación registrada'
+    );
+  }
+  resend(request: AccessRequest, resetPassword = false): void {
+    if (
+      !window.confirm(
+        resetPassword ? '¿Generar una nueva contraseña temporal para esta cuenta de prueba? Se reemplazará su contraseña actual y se cerrarán sus sesiones. La nueva aparecerá en la consola del trabajador.' : '¿Reenviar las instrucciones de acceso? Si aún utiliza una contraseña temporal, se generará una nueva.',
+      )
+    )
+      return;
+    this.processingId.set(request.id);
+    this.error.set('');
+    this.accessRequestService.resend(request.id, resetPassword).subscribe({
+      next: (r) => {
+        if (r.data) this.replaceRequest(r.data);
+        this.notice.set(r.message ?? 'Invitación encolada.');
+        this.processingId.set(null);
+      },
+      error: (e) => {
+        this.error.set(this.getErrorMessage(e, 'No se pudo reenviar.'));
+        this.processingId.set(null);
+      },
+    });
+  }
+  previewInvitation(request: AccessRequest): void {
+    this.accessRequestService.preview(request.id).subscribe({
+      next: (r) => this.mailPreview.set(r.data?.html ?? ''),
+      error: (e) =>
+        this.error.set(this.getErrorMessage(e, 'No se pudo abrir el correo de prueba.')),
+    });
+  }
 
   readonly visibleRequests = computed(() => {
     const term = this.search().trim().toLocaleLowerCase();
@@ -30,13 +81,15 @@ export class AccessRequestList implements OnInit {
 
     return this.requests().filter((request) => {
       const matchesStatus = filter === 'all' || request.status === filter;
-      const matchesSearch = !term || [
-        request.firstname,
-        request.lastname,
-        request.email,
-        request.landname,
-        request.id_number,
-      ].some((value) => value.toLocaleLowerCase().includes(term));
+      const matchesSearch =
+        !term ||
+        [
+          request.firstname,
+          request.lastname,
+          request.email,
+          request.landname,
+          request.id_number,
+        ].some((value) => value.toLocaleLowerCase().includes(term));
 
       return matchesStatus && matchesSearch;
     });
@@ -47,7 +100,9 @@ export class AccessRequestList implements OnInit {
   }
 
   count(status?: AccessRequestStatus): number {
-    return status ? this.requests().filter((request) => request.status === status).length : this.requests().length;
+    return status
+      ? this.requests().filter((request) => request.status === status).length
+      : this.requests().length;
   }
 
   loadRequests(): void {
@@ -57,6 +112,8 @@ export class AccessRequestList implements OnInit {
     this.accessRequestService.getAccessRequests().subscribe({
       next: (response) => {
         this.requests.set(response.data ?? []);
+        this.deliveryReady.set(response.delivery?.configured ?? true);
+        this.consoleResetEnabled.set(response.delivery?.console_reset ?? false);
         this.isLoading.set(false);
       },
       error: (error) => {
@@ -90,7 +147,9 @@ export class AccessRequestList implements OnInit {
     };
 
     const confirmed = window.confirm(
-      `¿Deseas ${labels[action]} la solicitud de ${request.firstname} ${request.lastname}?`,
+      action === 'approve'
+        ? `¿Aprobar la solicitud de ${request.firstname} ${request.lastname}? Se generará una contraseña temporal y se enviarán las instrucciones por correo. Si la cuenta ya existe, su contraseña anterior se reemplazará y se cerrarán sus sesiones. Deberá cambiar la contraseña temporal antes de acceder al panel.`
+        : `¿Deseas ${labels[action]} la solicitud de ${request.firstname} ${request.lastname}?`,
     );
 
     if (!confirmed) {
@@ -128,7 +187,7 @@ export class AccessRequestList implements OnInit {
 
   private replaceRequest(updatedRequest: AccessRequest): void {
     this.requests.update((requests) =>
-      requests.map((request) => request.id === updatedRequest.id ? updatedRequest : request),
+      requests.map((request) => (request.id === updatedRequest.id ? updatedRequest : request)),
     );
 
     if (this.selectedRequest()?.id === updatedRequest.id) {
@@ -137,7 +196,8 @@ export class AccessRequestList implements OnInit {
   }
 
   private getErrorMessage(error: unknown, fallback: string): string {
-    const response = (error as { error?: { message?: string; errors?: Record<string, string[]> } })?.error;
+    const response = (error as { error?: { message?: string; errors?: Record<string, string[]> } })
+      ?.error;
     const validationError = response?.errors ? Object.values(response.errors).flat()[0] : undefined;
 
     return validationError ?? response?.message ?? fallback;

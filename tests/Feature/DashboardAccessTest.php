@@ -4,15 +4,16 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Models\User;
-use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class DashboardAccessTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_global_dashboard_requires_authentication(): void
     {
         $this->getJson('/api/admin/dashboard')->assertUnauthorized();
@@ -32,44 +33,20 @@ class DashboardAccessTest extends TestCase
     {
         config(['dashboard.sensor_stale_minutes' => 45]);
 
-        Schema::create('fincas', function (Blueprint $table): void {
-            $table->id();
-            $table->string('estado');
-        });
-        Schema::create('lotes', function (Blueprint $table): void {
-            $table->id();
-            $table->string('estado');
-            $table->decimal('hectareas', 8, 2);
-            $table->string('tipo_cultivo');
-        });
-        Schema::create('actividades', function (Blueprint $table): void {
-            $table->id();
-            $table->string('tipo_actividad');
-            $table->date('fecha');
-            $table->decimal('costo', 10, 2)->default(0);
-        });
-        Schema::create('lecturas_iot', function (Blueprint $table): void {
-            $table->id();
-            $table->string('mac_dispositivo')->nullable();
-            $table->string('tipo_medicion');
-            $table->string('unidad');
-            $table->decimal('valor', 8, 2);
-            $table->timestamp('fecha_medicion');
-        });
-
-        DB::table('fincas')->insert([['estado' => 'aprobado'], ['estado' => 'pendiente']]);
+        $owner = User::factory()->create(['role' => UserRole::Productor]);
+        DB::table('fincas')->insert([['user_id' => $owner->id, 'nombre' => 'Primera', 'estado' => 'aprobado'], ['user_id' => $owner->id, 'nombre' => 'Segunda', 'estado' => 'pendiente']]);
         DB::table('lotes')->insert([
-            ['estado' => 'en_uso', 'hectareas' => 1.25, 'tipo_cultivo' => 'cacao'],
-            ['estado' => 'en_uso', 'hectareas' => 2.50, 'tipo_cultivo' => 'cacao'],
-            ['estado' => 'disponible', 'hectareas' => 8.00, 'tipo_cultivo' => 'café'],
+            ['finca_id' => 1, 'nombre' => 'Uno', 'estado' => 'en_uso', 'hectareas' => 1.25, 'tipo_cultivo' => 'cacao'],
+            ['finca_id' => 1, 'nombre' => 'Dos', 'estado' => 'en_uso', 'hectareas' => 2.50, 'tipo_cultivo' => 'cacao'],
+            ['finca_id' => 2, 'nombre' => 'Tres', 'estado' => 'disponible', 'hectareas' => 8.00, 'tipo_cultivo' => 'café'],
         ]);
         DB::table('actividades')->insert([
-            ['tipo_actividad' => 'riego', 'fecha' => Carbon::today()->toDateString(), 'costo' => 12.35],
-            ['tipo_actividad' => 'poda', 'fecha' => Carbon::today()->toDateString(), 'costo' => 7.65],
+            ['lote_id' => 1, 'tipo_actividad' => 'riego', 'fecha' => Carbon::today()->toDateString(), 'costo' => 12.35],
+            ['lote_id' => 2, 'tipo_actividad' => 'poda', 'fecha' => Carbon::today()->toDateString(), 'costo' => 7.65],
         ]);
         DB::table('lecturas_iot')->insert([
-            ['mac_dispositivo' => 'sensor-1', 'tipo_medicion' => 'temperatura', 'unidad' => '°C', 'valor' => 25.50, 'fecha_medicion' => Carbon::now()->subDay()],
-            ['mac_dispositivo' => 'sensor-2', 'tipo_medicion' => 'humedad_suelo', 'unidad' => '%', 'valor' => 45.00, 'fecha_medicion' => Carbon::now()->subMinutes(10)],
+            ['lote_id' => 1, 'mac_dispositivo' => 'sensor-1', 'tipo_medicion' => 'temperatura', 'unidad' => '°C', 'valor' => 25.50, 'fecha_medicion' => Carbon::now()->subDay()],
+            ['lote_id' => 2, 'mac_dispositivo' => 'sensor-2', 'tipo_medicion' => 'humedad_suelo', 'unidad' => '%', 'valor' => 45.00, 'fecha_medicion' => Carbon::now()->subMinutes(10)],
         ]);
 
         $admin = new User;
@@ -79,6 +56,7 @@ class DashboardAccessTest extends TestCase
 
         $this->getJson('/api/admin/dashboard')->assertOk()
             ->assertJsonPath('data.kpis.fincas', 2)
+            ->assertJsonPath('data.produccion.costos_produccion', 20)
             ->assertJsonPath('data.kpis.lotes_activos', 2)
             ->assertJsonPath('data.kpis.hectareas_cultivadas', 3.75)
             ->assertJsonPath('data.kpis.inversion_total', 20)

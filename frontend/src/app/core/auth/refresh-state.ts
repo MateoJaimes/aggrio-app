@@ -25,9 +25,10 @@ export const refreshState = {
     this.token$.next(token);
   },
 
-  /** La renovación falló: las peticiones en espera quedan colgadas y caducan con la sesión. */
+  /** La renovación falló: libera con error las peticiones que esperaban el token. */
   fail(): void {
     this.isRefreshing = false;
+    this.token$.next('');
   },
 
   /**
